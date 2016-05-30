@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
@@ -72,6 +73,9 @@ public class PersonOverviewController extends FXMLController {
 	private DatePicker detailBirthday;
 
 	@FXML
+	private TextField testTextField;
+
+	@FXML
 	private Label detailAge;
 
 	@FXML
@@ -101,7 +105,9 @@ public class PersonOverviewController extends FXMLController {
 	private void storePerson() {
 		if (currentSelected != null && currentSelected.hasChanges) {
 			try {
-				personRepository.update(currentSelected.changed);
+				currentSelected.changesToPerson();
+				tblPersonen.refresh();
+				personRepository.update(currentSelected.p);
 			} catch (IOException e) {
 				new ExceptionDialog(e).show();
 			}
@@ -124,10 +130,13 @@ public class PersonOverviewController extends FXMLController {
 			tblPersonen.setItems(personData);
 			columnPrename.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getPrename()));
 			columnSurname.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getSurname()));
-			columnAge.setCellValueFactory(cellData -> new SimpleStringProperty(getAge(cellData.getValue())));
+			columnAge.setCellValueFactory(cellData -> {
+				String age = getAge(cellData.getValue());
+				return new SimpleStringProperty(age);
+			});
 
 			if (personData.size() > 0) {
-				tblPersonen.getSelectionModel().select(0);
+				tblPersonen.getSelectionModel().clearAndSelect(0);
 			}
 
 			tblPersonen.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Person>() {
@@ -144,10 +153,12 @@ public class PersonOverviewController extends FXMLController {
 
 	private void updateDetails() {
 		if (currentSelected != null) {
-			detailPersonPrename.textProperty().bind(currentSelected.prenameProperty);
-			detailPersonSurname.textProperty().bind(currentSelected.surnameProperty);
+			testTextField.setText(currentSelected.p.getPrename());
+
+			detailPersonPrename.textProperty().bindBidirectional(currentSelected.prenameProperty);
+			detailPersonSurname.textProperty().bindBidirectional(currentSelected.surnameProperty);
 			System.out.println("Editable: " + detailPersonSurname.isEditable());
-			detailBirthday.valueProperty().bind(currentSelected.birth);
+			detailBirthday.valueProperty().bindBidirectional(currentSelected.birth);
 			detailAge.setText(getAge(currentSelected.p));
 			background.submit(new ContactFetchTask(currentSelected.p));
 		} else {
@@ -166,7 +177,6 @@ public class PersonOverviewController extends FXMLController {
 	private class ObservablePerson {
 
 		private final Person p;
-		private final Person changed;
 
 		private boolean hasChanges;
 
@@ -177,44 +187,43 @@ public class PersonOverviewController extends FXMLController {
 		public ObservablePerson(Person p) {
 			super();
 			this.p = p;
-			if (p != null)
-				changed = new Person(p.getId(), p.getPrename(), p.getSurname(), p.getType(), p.getBirth(),
-						p.getChanged(), p.getCreated());
-			else
-				changed = new Person();
 
 			hasChanges = false;
 
 			prenameProperty = new SimpleStringProperty(p.getPrename());
 			surnameProperty = new SimpleStringProperty(p.getSurname());
 
-			birth = new SimpleObjectProperty<LocalDate>(
-					p.getBirth().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+			if (p.getBirth() != null)
+				birth = new SimpleObjectProperty<LocalDate>(
+						p.getBirth().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+			else
+				birth = new SimpleObjectProperty<LocalDate>();
 
-			prenameProperty.addListener(new ChangeListener<String>() {
-
-				@Override
-				public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-					changed.setPrename(newValue);
-					prenameProperty.set(newValue);
-
-					if (!oldValue.equals(newValue))
-						hasChanges = true;
-				}
-			});
-			surnameProperty.addListener(new ChangeListener<String>() {
-
-				@Override
-				public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-					changed.setSurname(newValue);
-					surnameProperty.set(newValue);
-
-					if (!oldValue.equals(newValue))
-						hasChanges = true;
-				}
-			});
+			initListener();
 		}
 
+		private void initListener() {
+
+			prenameProperty.addListener(new MyChangeListener<>());
+			surnameProperty.addListener(new MyChangeListener<>());
+			birth.addListener(new MyChangeListener<>());
+		}
+
+		public void changesToPerson() {
+			p.setBirth(Date.from(birth.get().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()));
+			p.setPrename(prenameProperty.get());
+			p.setSurname(surnameProperty.get());
+		}
+
+		private class MyChangeListener<T> implements ChangeListener<T> {
+
+			@Override
+			public void changed(ObservableValue<? extends T> observable, T oldValue, T newValue) {
+				if ((oldValue == null && newValue != null) || !oldValue.equals(newValue))
+					hasChanges = true;
+			}
+
+		}
 	}
 
 	public String getAge(Person p) {
@@ -226,8 +235,9 @@ public class PersonOverviewController extends FXMLController {
 		StringBuilder bld = new StringBuilder();
 
 		LocalDate birth = p.getBirth().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-		Period between = Period.between(birth, LocalDate.now());
-		bld.append(between.getDays()).append(" Jahre (").append(birth.getYear()).append(")");
+		LocalDate now = LocalDate.now();
+		Period between = Period.between(birth, now);
+		bld.append(between.getYears()).append(" Jahre (").append(birth.getYear()).append(")");
 
 		return bld.toString();
 	}
