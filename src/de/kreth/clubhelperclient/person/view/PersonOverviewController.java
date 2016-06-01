@@ -18,9 +18,11 @@ import org.springframework.stereotype.Component;
 
 import de.kreth.clubhelperbackend.pojo.Contact;
 import de.kreth.clubhelperbackend.pojo.Person;
+import de.kreth.clubhelperbackend.pojo.Relative;
 import de.kreth.clubhelperclient.core.FXMLController;
 import de.kreth.clubhelperclient.person.model.ContactRepository;
 import de.kreth.clubhelperclient.person.model.PersonRepository;
+import de.kreth.clubhelperclient.person.model.RelativeRepository;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -38,8 +40,8 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
 
 @Component
 public class PersonOverviewController extends FXMLController {
@@ -73,9 +75,6 @@ public class PersonOverviewController extends FXMLController {
 	private DatePicker detailBirthday;
 
 	@FXML
-	private TextField testTextField;
-
-	@FXML
 	private Label detailAge;
 
 	@FXML
@@ -88,7 +87,10 @@ public class PersonOverviewController extends FXMLController {
 	private ScrollPane detailScrollPane;
 
 	@FXML
-	private TextArea textOutput;
+	private GridPane paneRelations;
+
+	@FXML
+	private GridPane paneContacts;
 
 	private ObservableList<Person> personData = FXCollections.observableArrayList();
 
@@ -153,14 +155,13 @@ public class PersonOverviewController extends FXMLController {
 
 	private void updateDetails() {
 		if (currentSelected != null) {
-			testTextField.setText(currentSelected.p.getPrename());
-
 			detailPersonPrename.textProperty().bindBidirectional(currentSelected.prenameProperty);
 			detailPersonSurname.textProperty().bindBidirectional(currentSelected.surnameProperty);
 			System.out.println("Editable: " + detailPersonSurname.isEditable());
 			detailBirthday.valueProperty().bindBidirectional(currentSelected.birth);
 			detailAge.setText(getAge(currentSelected.p));
 			background.submit(new ContactFetchTask(currentSelected.p));
+			background.submit(new RelationFetchTask(currentSelected.p));
 		} else {
 			detailPersonPrename.setText("");
 			detailPersonSurname.setText("");
@@ -242,6 +243,58 @@ public class PersonOverviewController extends FXMLController {
 		return bld.toString();
 	}
 
+	private class RelationFetchTask extends Task<List<Relative>> {
+
+		private final Person person;
+		List<Relative> result = Collections.emptyList();
+
+		public RelationFetchTask(Person p) {
+			this.person = p;
+		}
+
+		@Override
+		protected List<Relative> call() throws Exception {
+			RelativeRepository repository = new RelativeRepository();
+			result = repository.getByParentId(person.getId());
+			return result;
+		}
+
+		@Override
+		protected void succeeded() {
+			super.succeeded();
+
+			PersonRepository repo = new PersonRepository();
+
+			paneRelations.getChildren().clear();
+
+			int rowIndex = 0;
+			for (Relative r : result) {
+				try {
+
+					String relation;
+					Person p;
+					if (person.getId() == r.getPerson1()) {
+						relation = r.getToPerson2Relation();
+						p = repo.getById(r.getPerson2());
+					} else {
+						relation = r.getToPerson1Relation();
+						p = repo.getById(r.getPerson1());
+					}
+
+					Label type = new Label(relation);
+					TextField value = new TextField(p.getPrename() + " " + p.getSurname());
+
+					paneRelations.addRow(rowIndex, type, value);
+					rowIndex++;
+
+				} catch (IOException e) {
+					new ExceptionDialog(e).show();
+				}
+			}
+		}
+
+	}
+
 	private class ContactFetchTask extends Task<List<Contact>> {
 
 		private final Person person;
@@ -261,16 +314,17 @@ public class PersonOverviewController extends FXMLController {
 		@Override
 		protected void succeeded() {
 			super.succeeded();
-			StringBuilder bld = new StringBuilder();
+			paneContacts.getChildren().clear();
+
+			int rowIndex = 0;
 
 			for (Contact c : result) {
-				bld.append(c.getType()).append(" --> ").append(c.getValue()).append("\n");
+				Label type = new Label(c.getType());
+				TextField value = new TextField(c.getValue());
+				paneContacts.addRow(rowIndex, type, value);
+				rowIndex++;
 			}
 
-			if (textOutput != null)
-				textOutput.setText(bld.toString());
-			else
-				System.out.println(bld.toString());
 		}
 	}
 }
