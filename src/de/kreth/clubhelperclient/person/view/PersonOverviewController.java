@@ -268,6 +268,7 @@ public class PersonOverviewController extends FXMLController {
 			paneRelations.getChildren().clear();
 
 			int rowIndex = 0;
+
 			for (Relative r : result) {
 				try {
 
