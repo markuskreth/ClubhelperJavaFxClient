@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.controlsfx.dialog.ExceptionDialog;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -103,6 +104,11 @@ public class PersonOverviewController extends FXMLController {
 		System.out.println("initialize in " + getClass().getSimpleName() + " --> Table = " + tblPersonen);
 	}
 
+	@Autowired
+	public void setPersonRepository(PersonRepository personRepository) {
+		this.personRepository = personRepository;
+	}
+	
 	@FXML
 	private void storePerson() {
 		if (currentSelected != null && currentSelected.hasChanges) {
@@ -120,7 +126,6 @@ public class PersonOverviewController extends FXMLController {
 	public void initialize(URL location, ResourceBundle resources) {
 
 		try {
-			personRepository = new PersonRepository();
 			personData.addAll(personRepository.all());
 
 		} catch (IOException e) {
