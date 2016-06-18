@@ -31,7 +31,11 @@ public abstract class Repository<T extends Data> {
 	private final Class<T> typeClass;
 	private final Class<T[]> listClass;
 
-	private String resourceUrl = "http://localhost:8080/clubhelperbackend";
+	// private String resourceUrl = "http://localhost:8080/ClubHelperBackend/";
+	 private String resourceUrl = "http://localhost:8090/clubhelperbackend/";
+
+//	private String resourceUrl = "http://www.spallek.com:8080/ClubHelperBackend";
+
 	private Encryptor encryptor = new Encryptor();
 
 	private String baseUrl;
@@ -113,19 +117,10 @@ public abstract class Repository<T extends Data> {
 
 		List<HttpMessageConverter<?>> messageConverters = new ArrayList<HttpMessageConverter<?>>();
 
-		// Add the Jackson Message converter
-		// Jackson2ObjectMapperFactoryBean jacksonFactory = new
-		// Jackson2ObjectMapperFactoryBean();
-		// jacksonFactory.setDateFormat(new SimpleDateFormat("dd/MM/yyyy
-		// HH:mm:ss.SSS Z"));
-
 		MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
 		converter.getObjectMapper().setDateFormat(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS Z"));
 
 		messageConverters.add(converter);
-		// messageConverters.add(new GsonHttpMessageConverter());
-
-		// Add the message converters to the restTemplate
 		restTemplate.setMessageConverters(messageConverters);
 
 		return restTemplate;

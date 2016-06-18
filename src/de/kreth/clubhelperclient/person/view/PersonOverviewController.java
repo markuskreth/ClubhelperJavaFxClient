@@ -32,6 +32,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
@@ -119,14 +121,18 @@ public class PersonOverviewController extends FXMLController {
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 
-		try {
-			personRepository = new PersonRepository();
-			personData.addAll(personRepository.all());
+		personRepository = new PersonRepository();
+		background.execute(new Runnable() {
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
+			@Override
+			public void run() {
+				try {
+					personData.addAll(personRepository.all());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 		if (tblPersonen != null) {
 
 			tblPersonen.setItems(personData);
@@ -282,10 +288,14 @@ public class PersonOverviewController extends FXMLController {
 						p = repo.getById(r.getPerson1());
 					}
 
-					Label type = new Label(relation);
-					TextField value = new TextField(p.getPrename() + " " + p.getSurname());
+					final long personId = p.getId();
 
-					paneRelations.addRow(rowIndex, type, value);
+					Label type = new Label(relation);
+					Button btnValue = new Button(p.getPrename() + " " + p.getSurname());
+
+					btnValue.setOnAction(new PersonLoadActionEventHandler(p));
+
+					paneRelations.addRow(rowIndex, type, btnValue);
 					rowIndex++;
 
 				} catch (IOException e) {
@@ -327,5 +337,22 @@ public class PersonOverviewController extends FXMLController {
 			}
 
 		}
+	}
+
+	private class PersonLoadActionEventHandler implements EventHandler<ActionEvent> {
+
+		private final Person person;
+
+		public PersonLoadActionEventHandler(Person person) {
+			super();
+			this.person = person;
+		}
+
+		@Override
+		public void handle(ActionEvent event) {
+			currentSelected = new ObservablePerson(person);
+			updateDetails();
+		}
+
 	}
 }
