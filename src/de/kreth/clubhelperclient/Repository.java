@@ -11,6 +11,7 @@ import java.util.List;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequestExecution;
@@ -23,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 
 import de.kreth.clubhelperbackend.aspects.Encryptor;
 import de.kreth.clubhelperbackend.pojo.Data;
+import de.kreth.clubhelperclient.core.RemoteHolder;
 
 public abstract class Repository<T extends Data> {
 
@@ -38,27 +40,35 @@ public abstract class Repository<T extends Data> {
 
 	private Encryptor encryptor = new Encryptor();
 
-	private String baseUrl;
-
+	private RemoteHolder remoteHolder;
+	
 	public Repository(Class<T> typeClass, Class<T[]> listClass) {
 		super();
 		this.typeClass = typeClass;
 		this.listClass = listClass;
-		this.baseUrl = resourceUrl + "/" + typeClass.getSimpleName().toLowerCase();
+	}
+
+	@Autowired
+	public void setRemoteHolder(RemoteHolder remoteHolder) {
+		this.remoteHolder = remoteHolder;
 	}
 
 	public List<T> all() throws IOException {
-
+		
 		RestTemplate restTemplate;
 
 		try {
 			restTemplate = createRestTemplate();
-			ResponseEntity<T[]> all = restTemplate.getForEntity(baseUrl, listClass);
+			ResponseEntity<T[]> all = restTemplate.getForEntity(getBaseUrl(), listClass);
 			return Arrays.asList(all.getBody());
 		} catch (BadPaddingException | InvalidKeyException | IllegalBlockSizeException e) {
 			throw new IOException(e);
 		}
 
+	}
+
+	private String getBaseUrl() {
+		return remoteHolder.getRemoteUrl() + "/" + typeClass.getSimpleName().toLowerCase();
 	}
 
 	public T getById(long id) throws IOException {
@@ -67,7 +77,7 @@ public abstract class Repository<T extends Data> {
 
 		try {
 			restTemplate = createRestTemplate();
-			ResponseEntity<T> entity = restTemplate.getForEntity(baseUrl + "/" + id, typeClass);
+			ResponseEntity<T> entity = restTemplate.getForEntity(getBaseUrl() + "/" + id, typeClass);
 			return entity.getBody();
 		} catch (BadPaddingException | InvalidKeyException | IllegalBlockSizeException e) {
 			throw new IOException(e);
@@ -81,7 +91,7 @@ public abstract class Repository<T extends Data> {
 
 		try {
 			restTemplate = createRestTemplate();
-			ResponseEntity<T[]> all = restTemplate.getForEntity(baseUrl + "/for/" + id, listClass);
+			ResponseEntity<T[]> all = restTemplate.getForEntity(getBaseUrl() + "/for/" + id, listClass);
 			return Arrays.asList(all.getBody());
 		} catch (BadPaddingException | InvalidKeyException | IllegalBlockSizeException e) {
 			throw new IOException(e);
@@ -93,7 +103,7 @@ public abstract class Repository<T extends Data> {
 		RestTemplate restTemplate;
 		try {
 			restTemplate = createRestTemplate();
-			restTemplate.put(baseUrl + "/" + obj.getId(), obj);
+			restTemplate.put(getBaseUrl() + "/" + obj.getId(), obj);
 		} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
 			throw new IOException(e);
 		}
