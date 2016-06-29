@@ -47,8 +47,6 @@ public class Main extends Application {
 	@FXML
 	private Menu menuServerUrl;
 
-	@FXML
-	private RadioMenuItem menuItemPrototype;
 
 	@Override
 	public void start(Stage primaryStage) {
@@ -89,17 +87,20 @@ public class Main extends Application {
 				}
 			}
 		};
+		
+		if (menuServerUrl != null) {
 
-		if (menuItemPrototype != null) {
+			ToggleGroup group = new ToggleGroup();
+			RadioMenuItem item1 = new RadioMenuItem("http://localhost:8090/ClubHelperBackend/");
+			item1.setToggleGroup(group);
+			
+			if (item1.getText().equals(remoteHolder.getRemoteUrl()))
+				item1.setSelected(true);
 
-			menuItemPrototype.setText("http://localhost:8090/ClubHelperBackend/");
-
-			if (menuItemPrototype.getText().equals(remoteHolder.getRemoteUrl()))
-				menuItemPrototype.setSelected(true);
-
-			menuItemPrototype.setOnAction(menuHandler);
+			item1.setOnAction(menuHandler);
 
 			RadioMenuItem item2 = new RadioMenuItem("http://localhost:8080/ClubHelperBackend/");
+			item2.setToggleGroup(group);
 
 			if (item2.getText().equals(remoteHolder.getRemoteUrl()))
 				item2.setSelected(true);
@@ -107,16 +108,13 @@ public class Main extends Application {
 			menuServerUrl.getItems().add(item2);
 
 			RadioMenuItem item3 = new RadioMenuItem("http://markuskreth.kreinacke.de:8080/ClubHelperBackend");
+			item3.setToggleGroup(group);
 
 			if (item3.getText().equals(remoteHolder.getRemoteUrl()))
 				item3.setSelected(true);
 			item3.setOnAction(menuHandler);
 			menuServerUrl.getItems().add(item3);
 
-		} else {
-			if (menuServerUrl != null) {
-
-			}
 		}
 
 	}
