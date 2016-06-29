@@ -24,6 +24,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -47,6 +48,7 @@ public class Main extends Application {
 	@FXML
 	private Menu menuServerUrl;
 
+	private PersonOverviewController controller;
 
 	@Override
 	public void start(Stage primaryStage) {
@@ -78,7 +80,7 @@ public class Main extends Application {
 			public void handle(ActionEvent event) {
 				String text = ((MenuItem) event.getSource()).getText();
 				remoteHolder.setRemoteUrl(text);
-				showPersonOverview();
+				controller.refresh();
 				prefs.put(REMOTE_KEY, text);
 				try {
 					prefs.flush();
@@ -139,7 +141,7 @@ public class Main extends Application {
 	public void showPersonOverview() {
 
 		// Load person overview.
-		PersonOverviewController controller = appContext.getBean(PersonOverviewController.class);
+		controller = appContext.getBean(PersonOverviewController.class);
 
 		// Set person overview into the center of root layout.
 		rootLayout.setCenter(controller.getView());
