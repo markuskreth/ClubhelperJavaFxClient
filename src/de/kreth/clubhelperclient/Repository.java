@@ -34,14 +34,15 @@ public abstract class Repository<T extends Data> {
 	private final Class<T[]> listClass;
 
 	// private String resourceUrl = "http://localhost:8080/ClubHelperBackend/";
-	 private String resourceUrl = "http://localhost:8090/clubhelperbackend/";
+	// private String resourceUrl = "http://localhost:8090/clubhelperbackend/";
 
-//	private String resourceUrl = "http://www.spallek.com:8080/ClubHelperBackend";
+	// private String resourceUrl =
+	// "http://www.spallek.com:8080/ClubHelperBackend";
 
 	private Encryptor encryptor = new Encryptor();
 
 	private RemoteHolder remoteHolder;
-	
+
 	public Repository(Class<T> typeClass, Class<T[]> listClass) {
 		super();
 		this.typeClass = typeClass;
@@ -51,17 +52,19 @@ public abstract class Repository<T extends Data> {
 	@Autowired
 	public void setRemoteHolder(RemoteHolder remoteHolder) {
 		this.remoteHolder = remoteHolder;
+
 	}
 
 	public List<T> all() throws IOException {
-		
+
 		RestTemplate restTemplate;
 
 		try {
 			restTemplate = createRestTemplate();
 			ResponseEntity<T[]> all = restTemplate.getForEntity(getBaseUrl(), listClass);
 			return Arrays.asList(all.getBody());
-		} catch (BadPaddingException | InvalidKeyException | IllegalBlockSizeException e) {
+		} catch (BadPaddingException | InvalidKeyException | IllegalBlockSizeException
+				| org.springframework.web.client.ResourceAccessException e) {
 			throw new IOException(e);
 		}
 
