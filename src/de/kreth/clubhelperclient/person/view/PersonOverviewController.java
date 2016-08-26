@@ -33,6 +33,8 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -95,6 +97,9 @@ public class PersonOverviewController extends FXMLController {
 
 	@FXML
 	private GridPane paneContacts;
+
+	@FXML
+	private TextField filterText;
 
 	private ObservableList<Person> personData = FXCollections.observableArrayList();
 
@@ -162,7 +167,6 @@ public class PersonOverviewController extends FXMLController {
 		});
 		if (tblPersonen != null) {
 
-			tblPersonen.setItems(personData);
 			columnPrename.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getPrename()));
 			columnSurname.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getSurname()));
 			columnAge.setCellValueFactory(cellData -> {
@@ -182,6 +186,36 @@ public class PersonOverviewController extends FXMLController {
 					updateDetails();
 				}
 			});
+
+			FilteredList<Person> filteredData = new FilteredList<>(personData, p -> true);
+			SortedList<Person> sortedData = new SortedList<>(filteredData);
+
+			filterText.textProperty().addListener(new ChangeListener<String>() {
+
+				@Override
+				public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+					filteredData.setPredicate(p -> {
+
+						if (newValue == null || newValue.isEmpty())
+							return true;
+
+						String lowerCaseFilter = newValue.toLowerCase();
+
+						if (p.getPrename().toLowerCase().contains(lowerCaseFilter))
+							return true;
+
+						if (p.getSurname().toLowerCase().contains(lowerCaseFilter))
+							return true;
+
+						return false;
+
+					});
+				}
+			});
+
+			sortedData.comparatorProperty().bind(tblPersonen.comparatorProperty());
+
+			tblPersonen.setItems(sortedData);
 
 		}
 	}
@@ -314,7 +348,6 @@ public class PersonOverviewController extends FXMLController {
 						relation = r.getToPerson1Relation();
 						p = personRepository.getById(r.getPerson1());
 					}
-
 
 					Label type = new Label(relation);
 					Button btnValue = new Button(p.getPrename() + " " + p.getSurname());

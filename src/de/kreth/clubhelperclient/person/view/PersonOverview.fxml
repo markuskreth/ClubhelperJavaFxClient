@@ -25,7 +25,9 @@
         <items>
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
                <children>
-                  <TableView fx:id="tblPersonen" prefHeight="798.0" prefWidth="234.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                  <Label prefHeight="26.0" prefWidth="38.0" text="Filter:" AnchorPane.leftAnchor="5.0" AnchorPane.topAnchor="0.0" />
+                  <TextField fx:id="filterText" layoutX="47.0" layoutY="3.0" prefHeight="26.0" prefWidth="317.0" AnchorPane.leftAnchor="47.0" AnchorPane.topAnchor="0.0" />
+                  <TableView fx:id="tblPersonen" layoutY="26.0" prefHeight="772.0" prefWidth="364.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="26.0">
                     <columns>
                       <TableColumn fx:id="columnPrename" editable="false" prefWidth="75.0" text="Vorname" />
                       <TableColumn fx:id="columnSurname" editable="false" prefWidth="75.0" text="Nachname" />
