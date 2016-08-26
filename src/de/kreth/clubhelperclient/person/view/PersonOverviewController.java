@@ -101,6 +101,8 @@ public class PersonOverviewController extends FXMLController {
 	private ObservablePerson currentSelected = null;
 
 	private PersonRepository personRepository;
+	private ContactRepository contactRepository;
+	private RelativeRepository relativeRepository;
 
 	@FXML
 	private void initialize() {
@@ -108,10 +110,20 @@ public class PersonOverviewController extends FXMLController {
 	}
 
 	@Autowired
+	public void setContactRepository(ContactRepository contactRepository) {
+		this.contactRepository = contactRepository;
+	}
+
+	@Autowired
 	public void setPersonRepository(PersonRepository personRepository) {
 		this.personRepository = personRepository;
 	}
-	
+
+	@Autowired
+	public void setRelativeRepository(RelativeRepository relativeRepository) {
+		this.relativeRepository = relativeRepository;
+	}
+
 	@FXML
 	private void storePerson() {
 		if (currentSelected != null && currentSelected.hasChanges) {
@@ -278,8 +290,7 @@ public class PersonOverviewController extends FXMLController {
 
 		@Override
 		protected List<Relative> call() throws Exception {
-			RelativeRepository repository = new RelativeRepository();
-			result = repository.getByParentId(person.getId());
+			result = relativeRepository.getByParentId(person.getId());
 			return result;
 		}
 
@@ -328,12 +339,19 @@ public class PersonOverviewController extends FXMLController {
 
 		public ContactFetchTask(Person p) {
 			this.person = p;
+			System.out.println("ContactFetchTask initalized");
 		}
 
 		@Override
 		protected List<Contact> call() throws Exception {
-			ContactRepository repository = new ContactRepository();
-			result = repository.getByParentId(person.getId());
+			System.out.println("Calling Repository...");
+			try {
+				result = contactRepository.getByParentId(person.getId());
+			} catch (Exception e) {
+				System.out.println(e);
+				e.printStackTrace();
+			}
+			System.out.println("Repo answer: " + result);
 			return result;
 		}
 
@@ -342,6 +360,7 @@ public class PersonOverviewController extends FXMLController {
 			super.succeeded();
 			paneContacts.getChildren().clear();
 
+			System.out.println("Updating Views...");
 			int rowIndex = 0;
 
 			for (Contact c : result) {

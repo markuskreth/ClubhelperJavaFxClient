@@ -77,6 +77,10 @@ public class Main extends Application {
 		}
 	}
 
+	@FXML
+	protected void onCloseAction(ActionEvent ev) {
+		primaryStage.close();
+	}
 
 	@FXML
 	public void onRevertAction(final ActionEvent event) {
@@ -134,6 +138,13 @@ public class Main extends Application {
 			item3.setOnAction(menuHandler);
 			menuServerUrl.getItems().add(item3);
 
+			RadioMenuItem item4 = new RadioMenuItem("http://localhost:8090/clubhelperbackend/");
+
+			if (item4.getText().equals(remoteHolder.getRemoteUrl()))
+				item4.setSelected(true);
+			item4.setOnAction(menuHandler);
+			menuServerUrl.getItems().add(item4);
+
 		} else {
 			if (menuServerUrl != null) {
 
@@ -173,6 +184,7 @@ public class Main extends Application {
 	private void initRootLayout() {
 
 		try {
+
 			primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 
 				@Override
@@ -181,10 +193,12 @@ public class Main extends Application {
 					System.exit(0);
 				}
 			});
+
 			final FXMLLoader loader = new FXMLLoader();
 			loader.setLocation(Main.class.getResource("person/view/RootLayout.fxml"));
 			loader.setController(this);
 			rootLayout = loader.load();
+
 			Scene scene = new Scene(rootLayout);
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
 			primaryStage.setScene(scene);

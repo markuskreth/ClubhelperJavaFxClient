@@ -33,12 +33,6 @@ public abstract class Repository<T extends Data> {
 	private final Class<T> typeClass;
 	private final Class<T[]> listClass;
 
-	// private String resourceUrl = "http://localhost:8080/ClubHelperBackend/";
-	// private String resourceUrl = "http://localhost:8090/clubhelperbackend/";
-
-	// private String resourceUrl =
-	// "http://www.spallek.com:8080/ClubHelperBackend";
-
 	private Encryptor encryptor = new Encryptor();
 
 	private RemoteHolder remoteHolder;
@@ -71,7 +65,9 @@ public abstract class Repository<T extends Data> {
 	}
 
 	private String getBaseUrl() {
-		return remoteHolder.getRemoteUrl() + "/" + typeClass.getSimpleName().toLowerCase();
+		String remoteUrl = remoteHolder.getRemoteUrl();
+		String simpleName = typeClass.getSimpleName().toLowerCase();
+		return remoteUrl + "/" + simpleName;
 	}
 
 	public T getById(long id) throws IOException {
