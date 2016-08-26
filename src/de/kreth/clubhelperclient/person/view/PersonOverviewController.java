@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import de.kreth.clubhelperbackend.pojo.Contact;
 import de.kreth.clubhelperbackend.pojo.Person;
 import de.kreth.clubhelperbackend.pojo.Relative;
+import de.kreth.clubhelperclient.action.RepositoryUpdateAction;
 import de.kreth.clubhelperclient.core.FXMLController;
 import de.kreth.clubhelperclient.person.model.ContactRepository;
 import de.kreth.clubhelperclient.person.model.PersonRepository;
@@ -115,11 +116,20 @@ public class PersonOverviewController extends FXMLController {
 	private void storePerson() {
 		if (currentSelected != null && currentSelected.hasChanges) {
 			try {
-				currentSelected.changesToPerson();
-				tblPersonen.refresh();
-				personRepository.update(currentSelected.p);
-			} catch (IOException e) {
-				new ExceptionDialog(e).show();
+				Person original = (Person) currentSelected.p.clone();
+				try {
+					currentSelected.changesToPerson();
+
+					tblPersonen.refresh();
+					personRepository.update(currentSelected.p);
+
+					actions.add(new RepositoryUpdateAction<Person>(original, currentSelected.p, personRepository));
+
+				} catch (IOException e) {
+					new ExceptionDialog(e).show();
+				}
+			} catch (CloneNotSupportedException e1) {
+				new ExceptionDialog(e1).show();
 			}
 		}
 	}
@@ -171,8 +181,11 @@ public class PersonOverviewController extends FXMLController {
 			System.out.println("Editable: " + detailPersonSurname.isEditable());
 			detailBirthday.valueProperty().bindBidirectional(currentSelected.birth);
 			detailAge.setText(getAge(currentSelected.p));
-			background.submit(new ContactFetchTask(currentSelected.p));
-			background.submit(new RelationFetchTask(currentSelected.p));
+
+			System.out.println("Submitting ContactFetchTask");
+			background.execute(new ContactFetchTask(currentSelected.p));
+			background.execute(new RelationFetchTask(currentSelected.p));
+
 		} else {
 			detailPersonPrename.setText("");
 			detailPersonSurname.setText("");
@@ -238,7 +251,7 @@ public class PersonOverviewController extends FXMLController {
 		}
 	}
 
-	public String getAge(Person p) {
+	protected String getAge(Person p) {
 
 		if (p == null || p.getBirth() == null) {
 			return "";
@@ -274,8 +287,6 @@ public class PersonOverviewController extends FXMLController {
 		protected void succeeded() {
 			super.succeeded();
 
-			PersonRepository repo = new PersonRepository();
-
 			paneRelations.getChildren().clear();
 
 			int rowIndex = 0;
@@ -287,13 +298,12 @@ public class PersonOverviewController extends FXMLController {
 					Person p;
 					if (person.getId() == r.getPerson1()) {
 						relation = r.getToPerson2Relation();
-						p = repo.getById(r.getPerson2());
+						p = personRepository.getById(r.getPerson2());
 					} else {
 						relation = r.getToPerson1Relation();
-						p = repo.getById(r.getPerson1());
+						p = personRepository.getById(r.getPerson1());
 					}
 
-					final long personId = p.getId();
 
 					Label type = new Label(relation);
 					Button btnValue = new Button(p.getPrename() + " " + p.getSurname());
@@ -359,5 +369,22 @@ public class PersonOverviewController extends FXMLController {
 			updateDetails();
 		}
 
+	}
+
+	public void refreshView() {
+
+		if (currentSelected != null) {
+			try {
+				int indexOf = personData.indexOf(currentSelected.p);
+				currentSelected = new ObservablePerson(personRepository.getById(currentSelected.p.getId()));
+				personData.remove(indexOf);
+				personData.add(indexOf, currentSelected.p);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+		}
+
+		updateDetails();
 	}
 }

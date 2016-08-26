@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.net.URL;
 
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import de.kreth.clubhelperclient.action.ActionStack;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
@@ -14,6 +16,7 @@ public abstract class FXMLController implements InitializingBean, Initializable 
 
 	protected String fxmlFilePath;
 	protected Node view;
+	protected ActionStack actions;
 
 	public abstract void setFxmlFilePath(String filePath);
 
@@ -23,6 +26,11 @@ public abstract class FXMLController implements InitializingBean, Initializable 
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		loadFXML();
+	}
+
+	@Autowired
+	public void setActions(ActionStack actionStack) {
+		this.actions = actionStack;
 	}
 
 	protected final void loadFXML() throws IOException {

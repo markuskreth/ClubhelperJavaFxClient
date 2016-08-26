@@ -11,6 +11,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
+import de.kreth.clubhelperbackend.pojo.Data;
+import de.kreth.clubhelperclient.action.Action;
+import de.kreth.clubhelperclient.action.ActionStack;
 import de.kreth.clubhelperclient.core.RemoteHolder;
 import de.kreth.clubhelperclient.person.view.PersonOverviewController;
 import javafx.application.Application;
@@ -50,6 +53,10 @@ public class Main extends Application {
 	@FXML
 	private RadioMenuItem menuItemPrototype;
 
+	private ActionStack actionStack;
+
+	private PersonOverviewController controller;
+
 	@Override
 	public void start(Stage primaryStage) {
 		try {
@@ -68,6 +75,20 @@ public class Main extends Application {
 			ExceptionDialog dlg = new ExceptionDialog(e);
 			dlg.show();
 		}
+	}
+
+
+	@FXML
+	public void onRevertAction(final ActionEvent event) {
+
+		if (!actionStack.isEmpty()) {
+			Action<?> action = actionStack.pop();
+			Data original = action.getOriginal();
+			action.revert();
+			System.out.println(original.toString() + " wieder hergestellt.");
+			controller.refreshView();
+		}
+
 	}
 
 	private void initServerMenuItems() {
@@ -131,6 +152,8 @@ public class Main extends Application {
 
 		final RemoteHolder remoteHolder = appContext.getBean(RemoteHolder.class);
 
+		actionStack = appContext.getBean(ActionStack.class);
+
 		remoteHolder.setRemoteUrl(prefs.get(REMOTE_KEY, remoteHolder.getRemoteUrl()));
 
 		System.out.println(
@@ -141,7 +164,7 @@ public class Main extends Application {
 	public void showPersonOverview() {
 
 		// Load person overview.
-		PersonOverviewController controller = appContext.getBean(PersonOverviewController.class);
+		controller = appContext.getBean(PersonOverviewController.class);
 
 		// Set person overview into the center of root layout.
 		rootLayout.setCenter(controller.getView());
