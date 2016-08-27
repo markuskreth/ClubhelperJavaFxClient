@@ -154,17 +154,8 @@ public class PersonOverviewController extends FXMLController {
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 
-		background.execute(new Runnable() {
-
-			@Override
-			public void run() {
-				try {
-					personData.addAll(personRepository.all());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		refresh();
+		
 		if (tblPersonen != null) {
 
 			columnPrename.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getPrename()));
@@ -220,7 +211,23 @@ public class PersonOverviewController extends FXMLController {
 		}
 	}
 
-	private void updateDetails() {
+	public void refresh() {
+
+		background.execute(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					personData.clear();
+					personData.addAll(personRepository.all());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	public void updateDetails() {
 		if (currentSelected != null) {
 			detailPersonPrename.textProperty().bindBidirectional(currentSelected.prenameProperty);
 			detailPersonSurname.textProperty().bindBidirectional(currentSelected.surnameProperty);

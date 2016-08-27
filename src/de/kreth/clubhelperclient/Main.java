@@ -27,6 +27,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -49,9 +50,6 @@ public class Main extends Application {
 
 	@FXML
 	private Menu menuServerUrl;
-
-	@FXML
-	private RadioMenuItem menuItemPrototype;
 
 	private ActionStack actionStack;
 
@@ -105,7 +103,7 @@ public class Main extends Application {
 			public void handle(ActionEvent event) {
 				String text = ((MenuItem) event.getSource()).getText();
 				remoteHolder.setRemoteUrl(text);
-				showPersonOverview();
+				controller.refresh();
 				prefs.put(REMOTE_KEY, text);
 				try {
 					prefs.flush();
@@ -115,16 +113,19 @@ public class Main extends Application {
 			}
 		};
 
-		if (menuItemPrototype != null) {
+		if (menuServerUrl != null) {
 
-			menuItemPrototype.setText("http://localhost:8090/ClubHelperBackend/");
+			ToggleGroup group = new ToggleGroup();
+			RadioMenuItem item1 = new RadioMenuItem("http://localhost:8090/ClubHelperBackend/");
+			item1.setToggleGroup(group);
 
-			if (menuItemPrototype.getText().equals(remoteHolder.getRemoteUrl()))
-				menuItemPrototype.setSelected(true);
+			if (item1.getText().equals(remoteHolder.getRemoteUrl()))
+				item1.setSelected(true);
 
-			menuItemPrototype.setOnAction(menuHandler);
+			item1.setOnAction(menuHandler);
 
 			RadioMenuItem item2 = new RadioMenuItem("http://localhost:8080/ClubHelperBackend/");
+			item2.setToggleGroup(group);
 
 			if (item2.getText().equals(remoteHolder.getRemoteUrl()))
 				item2.setSelected(true);
@@ -132,6 +133,7 @@ public class Main extends Application {
 			menuServerUrl.getItems().add(item2);
 
 			RadioMenuItem item3 = new RadioMenuItem("http://markuskreth.kreinacke.de:8080/ClubHelperBackend");
+			item3.setToggleGroup(group);
 
 			if (item3.getText().equals(remoteHolder.getRemoteUrl()))
 				item3.setSelected(true);
@@ -145,10 +147,6 @@ public class Main extends Application {
 			item4.setOnAction(menuHandler);
 			menuServerUrl.getItems().add(item4);
 
-		} else {
-			if (menuServerUrl != null) {
-
-			}
 		}
 
 	}
