@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?language javascript?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.DatePicker?>
@@ -20,13 +21,23 @@
 <?import javafx.scene.text.Font?>
 
 <AnchorPane prefHeight="800.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1">
+
+    <fx:script>
+    importClass(java.lang.System);
+
+    function clearFilter(event) {
+    	filterText.setText("");
+    	filterText.requestFocus();
+    }
+    </fx:script>
+
    <children>
       <SplitPane dividerPositions="0.46115288220551376" layoutY="14.0" prefHeight="800.0" prefWidth="800.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <items>
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
                <children>
                   <Label prefHeight="26.0" prefWidth="38.0" text="Filter:" AnchorPane.leftAnchor="5.0" AnchorPane.topAnchor="0.0" />
-                  <TextField fx:id="filterText" layoutX="47.0" layoutY="3.0" prefHeight="26.0" prefWidth="317.0" AnchorPane.leftAnchor="47.0" AnchorPane.topAnchor="0.0" />
+                  <TextField fx:id="filterText" layoutX="47.0" layoutY="3.0" prefHeight="26.0" prefWidth="276.0" AnchorPane.leftAnchor="47.0" AnchorPane.topAnchor="0.0" />
                   <TableView fx:id="tblPersonen" layoutY="26.0" prefHeight="772.0" prefWidth="364.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="26.0">
                     <columns>
                       <TableColumn fx:id="columnPrename" editable="false" prefWidth="75.0" text="Vorname" />
@@ -37,6 +48,11 @@
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                      </columnResizePolicy>
                   </TableView>
+                  <Button cancelButton="true" layoutX="328.0" mnemonicParsing="false" onAction="clearFilter(event)" prefHeight="26.0" prefWidth="31.0" text="&lt;&lt;">
+                     <font>
+                        <Font size="10.0" />
+                     </font>
+                  </Button>
                </children>
             </AnchorPane>
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
@@ -120,6 +136,7 @@
                     </tabs>
                   </TabPane>
                   <Button fx:id="detailCommit" layoutX="350.0" layoutY="758.0" mnemonicParsing="false" onAction="#storePerson" text="Speichern" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="14.0" />
+                  <Button fx:id="printTr" layoutX="213.0" layoutY="758.0" mnemonicParsing="false" onAction="#printTrainingsplan" text="Trainingsplan" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="106.0" />
                </children>
             </AnchorPane>
         </items>

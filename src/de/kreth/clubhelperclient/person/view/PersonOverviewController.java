@@ -1,12 +1,15 @@
 package de.kreth.clubhelperclient.person.view;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
+import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
+
 import de.kreth.clubhelperbackend.pojo.Contact;
 import de.kreth.clubhelperbackend.pojo.Person;
 import de.kreth.clubhelperbackend.pojo.Relative;
@@ -25,6 +33,7 @@ import de.kreth.clubhelperclient.core.FXMLController;
 import de.kreth.clubhelperclient.person.model.ContactRepository;
 import de.kreth.clubhelperclient.person.model.PersonRepository;
 import de.kreth.clubhelperclient.person.model.RelativeRepository;
+import de.kreth.clubhelperclient.reports.data.TrainingsPlanPerson;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -48,6 +57,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.view.JasperViewer;
 
 @Component
 public class PersonOverviewController extends FXMLController {
@@ -86,8 +100,8 @@ public class PersonOverviewController extends FXMLController {
 	@FXML
 	private Spinner<de.kreth.clubhelperbackend.pojo.Group> detailSpinnerAufgabe;
 
-	@FXML
-	private Button detailCommit;
+	// @FXML
+	// private Button detailCommit;
 
 	@FXML
 	private ScrollPane detailScrollPane;
@@ -104,10 +118,13 @@ public class PersonOverviewController extends FXMLController {
 	private ObservableList<Person> personData = FXCollections.observableArrayList();
 
 	private ObservablePerson currentSelected = null;
+	private String currentTelephone = "";
 
 	private PersonRepository personRepository;
 	private ContactRepository contactRepository;
 	private RelativeRepository relativeRepository;
+
+	public boolean relativesLoading;
 
 	@FXML
 	private void initialize() {
@@ -151,11 +168,35 @@ public class PersonOverviewController extends FXMLController {
 		}
 	}
 
+	@FXML
+	private void printTrainingsplan() {
+		if (currentSelected != null) {
+			Person p = currentSelected.p;
+
+			TrainingsPlanPerson pers = new TrainingsPlanPerson(p, p.getCreated(), currentTelephone);
+
+			List<TrainingsPlanPerson> srcList = new ArrayList<>();
+			srcList.add(pers);
+
+			try {
+				String rs = "/Trainingsplan2.jasper";
+
+				JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(srcList);
+				InputStream res = getClass().getResourceAsStream(rs);
+				JasperPrint print = JasperFillManager.fillReport(res, new HashMap<>(), source);
+
+				JasperViewer.viewReport(print, false);
+			} catch (JRException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 
 		refresh();
-		
+
 		if (tblPersonen != null) {
 
 			columnPrename.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getPrename()));
@@ -173,7 +214,12 @@ public class PersonOverviewController extends FXMLController {
 
 				@Override
 				public void changed(ObservableValue<? extends Person> observable, Person oldValue, Person newValue) {
-					currentSelected = new ObservablePerson(newValue);
+					if (newValue != null) {
+						currentSelected = new ObservablePerson(newValue);
+					} else {
+						currentSelected = null;
+					}
+					currentTelephone = "";
 					updateDetails();
 				}
 			});
@@ -331,7 +377,13 @@ public class PersonOverviewController extends FXMLController {
 
 		@Override
 		protected List<Relative> call() throws Exception {
-			result = relativeRepository.getByParentId(person.getId());
+			relativesLoading = true;
+			try {
+				result = relativeRepository.getByParentId(person.getId());
+			} catch (Exception e) {
+				relativesLoading = false;
+				throw e;
+			}
 			return result;
 		}
 
@@ -377,6 +429,8 @@ public class PersonOverviewController extends FXMLController {
 		private final Person person;
 		List<Contact> result = Collections.emptyList();
 
+		PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
+
 		public ContactFetchTask(Person p) {
 			this.person = p;
 			System.out.println("ContactFetchTask initalized");
@@ -387,6 +441,20 @@ public class PersonOverviewController extends FXMLController {
 			System.out.println("Calling Repository...");
 			try {
 				result = contactRepository.getByParentId(person.getId());
+				if (result == null || result.isEmpty()) {
+					result = new ArrayList<>();
+					while (relativesLoading) {
+						try {
+							Thread.sleep(100);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+
+					while (result.isEmpty()) {
+
+					}
+				}
 			} catch (Exception e) {
 				System.out.println(e);
 				e.printStackTrace();
@@ -403,8 +471,33 @@ public class PersonOverviewController extends FXMLController {
 			System.out.println("Updating Views...");
 			int rowIndex = 0;
 
+			String lastType = null;
+
 			for (Contact c : result) {
-				Label type = new Label(c.getType());
+
+				String type2 = c.getType();
+
+				if (lastType == null) {
+					try {
+						PhoneNumber parsed = phoneUtil.parse(c.getValue(), "DE");
+						currentTelephone = phoneUtil.format(parsed, PhoneNumberFormat.NATIONAL);
+						lastType = type2;
+					} catch (NumberParseException e) {
+						e.printStackTrace();
+					}
+
+				} else {
+					if (!lastType.toLowerCase().contains("mobile") && type2.toLowerCase().contains("mobile")) {
+						try {
+							PhoneNumber parsed = phoneUtil.parse(c.getValue(), "DE");
+							currentTelephone = phoneUtil.format(parsed, PhoneNumberFormat.NATIONAL);
+							lastType = type2;
+						} catch (NumberParseException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+				Label type = new Label(type2);
 				TextField value = new TextField(c.getValue());
 				paneContacts.addRow(rowIndex, type, value);
 				rowIndex++;
