@@ -22,9 +22,9 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
-import de.kreth.clubhelperbackend.aspects.Encryptor;
 import de.kreth.clubhelperbackend.pojo.Data;
 import de.kreth.clubhelperclient.core.RemoteHolder;
+import de.kreth.encryption.Encryptor;
 
 public abstract class Repository<T extends Data> {
 
@@ -107,6 +107,22 @@ public abstract class Repository<T extends Data> {
 			throw new IOException(e);
 		}
 
+	}
+
+	public T insert(T obj) throws IOException {
+
+		RestTemplate restTemplate;
+		T result = null;
+
+		try {
+			restTemplate = createRestTemplate();
+			ResponseEntity<T> entity = restTemplate.postForEntity(getBaseUrl() + "/" + obj.getId(), obj, typeClass);
+			result = entity.getBody();
+		} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+			throw new IOException(e);
+		}
+
+		return result;
 	}
 
 	private RestTemplate createRestTemplate()

@@ -3,6 +3,7 @@ package de.kreth.clubhelperclient;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
+import org.apache.log4j.Logger;
 import org.controlsfx.dialog.ExceptionDialog;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -41,6 +42,8 @@ public class Main extends Application {
 
 	private Preferences prefs = Preferences.userNodeForPackage(Application.class);
 
+	private Logger log;
+
 	private ApplicationContext appContext;
 	private Stage primaryStage;
 	private BorderPane rootLayout;
@@ -58,6 +61,7 @@ public class Main extends Application {
 	@Override
 	public void start(Stage primaryStage) {
 		try {
+			log = Logger.getLogger(getClass());
 
 			this.primaryStage = primaryStage;
 
@@ -87,7 +91,9 @@ public class Main extends Application {
 			Action<?> action = actionStack.pop();
 			Data original = action.getOriginal();
 			action.revert();
-			System.out.println(original.toString() + " wieder hergestellt.");
+
+			log.info(original.toString() + " wieder hergestellt.");
+
 			controller.refreshView();
 		}
 
@@ -165,8 +171,7 @@ public class Main extends Application {
 
 		remoteHolder.setRemoteUrl(prefs.get(REMOTE_KEY, remoteHolder.getRemoteUrl()));
 
-		System.out.println(
-				String.format("%s %s wurde gestartet mit Remote %s", name, version, remoteHolder.getRemoteUrl()));
+		log.info(String.format("%s %s wurde gestartet mit Remote %s", name, version, remoteHolder.getRemoteUrl()));
 
 	}
 

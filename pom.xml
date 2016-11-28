@@ -1,11 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>ClubhelperClient</groupId>
-	<artifactId>ClubhelperClient</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<artifactId>clubhelper-client</artifactId>
 	<name>ClubhelperClient</name>
 	<properties>
+		<java-version>1.8</java-version>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.testTarget>1.8</maven.compiler.testTarget>
@@ -51,11 +50,6 @@
 	</build>
 	<dependencies>
 		<dependency>
-			<groupId>de.kreth</groupId>
-			<artifactId>clubhelperbackend</artifactId>
-			<version>1.0.0-BUILD-SNAPSHOT</version>
-		</dependency>
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
@@ -86,11 +80,6 @@
 			<version>${com.fasterxml.jacksoncore-version}</version>
 		</dependency>
 		<dependency>
-			<groupId>commons-codec</groupId>
-			<artifactId>commons-codec</artifactId>
-			<version>1.6</version>
-		</dependency>
-		<dependency>
 			<groupId>org.controlsfx</groupId>
 			<artifactId>controlsfx</artifactId>
 			<version>8.40.10</version>
@@ -105,5 +94,21 @@
 			<artifactId>libphonenumber</artifactId>
 			<version>7.7.4</version>
 		</dependency>
+		<dependency>
+			<groupId>de.kreth</groupId>
+			<artifactId>clubhelperdata</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
 	</dependencies>
+	<parent>
+		<groupId>de.kreth</groupId>
+		<artifactId>clubhelper-parent</artifactId>
+		<version>1.0.1-SNAPSHOT</version>
+	</parent>
 </project>

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -17,6 +18,11 @@ public abstract class FXMLController implements InitializingBean, Initializable 
 	protected String fxmlFilePath;
 	protected Node view;
 	protected ActionStack actions;
+	protected Logger log;
+
+	public FXMLController() {
+		log = Logger.getLogger(getClass());
+	}
 
 	public abstract void setFxmlFilePath(String filePath);
 
@@ -48,8 +54,7 @@ public abstract class FXMLController implements InitializingBean, Initializable 
 			try {
 				this.view = (loader.load(fxmlStream));
 			} catch (Exception e) {
-				System.err.println("Fehler beim Laden der FXML " + fxmlFilePath);
-				e.printStackTrace(System.err);
+				log.error("Fehler beim Laden der FXML " + fxmlFilePath, e);
 			}
 		}
 	}
