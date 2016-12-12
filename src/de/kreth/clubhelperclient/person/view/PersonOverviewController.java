@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -57,20 +58,28 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -117,9 +126,6 @@ public class PersonOverviewController extends FXMLController {
 
 	@FXML
 	private ListView<Group> groupListView;
-
-	// @FXML
-	// private Button detailCommit;
 
 	@FXML
 	private ScrollPane detailScrollPane;
@@ -179,6 +185,13 @@ public class PersonOverviewController extends FXMLController {
 	}
 
 	@FXML
+	private void showGroupContextMenu() {
+		Alert msg = new Alert(AlertType.INFORMATION);
+		msg.setContentText("Zeige jetzt auch das Menü?");
+		msg.show();
+	}
+
+	@FXML
 	private void storePerson() {
 		if (currentSelected != null && currentSelected.hasChanges) {
 			try {
@@ -206,26 +219,30 @@ public class PersonOverviewController extends FXMLController {
 
 		PersonCreatedTask pTask = new PersonCreatedTask();
 
-		PersonEditDialogController cont = new PersonEditDialogController();
-
 		URL resource = PersonEditDialogController.class.getResource("PersonEditDialog.fxml");
 		FXMLLoader fxmlLoader = new FXMLLoader(resource);
-		fxmlLoader.setController(cont);
 
 		Stage stage = new Stage();
 
 		stage.initModality(Modality.WINDOW_MODAL);
-		stage.initStyle(StageStyle.UNDECORATED);
+		stage.initStyle(StageStyle.DECORATED);
+
+		stage.initOwner(tblPersonen.getScene().getWindow());
+		stage.setTitle("Neue Person");
+
 		try {
 			AnchorPane pane = fxmlLoader.load();
 
+			Scene scene = new Scene(pane);
+			stage.setScene(scene);
+
+			PersonEditDialogController cont = fxmlLoader.getController();
 			cont.setGroups(allGroups);
 			cont.setHandler(pTask);
-			Scene scene = new Scene(pane);
-			stage.initOwner(detailScrollPane.getScene().getWindow());
-			stage.setScene(scene);
+			cont.setStage(stage);
+
 			stage.show();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			log.error("Cannot open Dialog", e);
 		}
 	}
@@ -233,6 +250,55 @@ public class PersonOverviewController extends FXMLController {
 	@FXML
 	protected void delPerson(ActionEvent ev) {
 		log.debug("deleting " + currentSelected);
+
+	}
+
+	protected void removeGroupFromUser(Group selectedItem2) {
+		if (selectedItem2 != null) {
+			personGroups.remove(selectedItem2);
+			if (currentSelected != null && currentSelected.p != null) {
+				log.info("Removed " + selectedItem2.getName() + " from " + currentSelected.p.toString());
+			} else {
+				log.warn("No Person selected currently!?");
+			}
+		} else {
+			log.warn("Group to remove was " + selectedItem2);
+		}
+	}
+
+	protected void addGroupToUser() {
+
+		List<Group> available = new ArrayList<>();
+		log.debug("AllGroups size: " + allGroups.size());
+		log.trace("AllGroups: " + allGroups);
+
+		for (Group g : allGroups.values()) {
+			if (!personGroups.contains(g)) {
+				available.add(new ToStringGroup(g));
+			}
+			available.remove(g);
+		}
+
+		log.info("Available Groups to choose from: " + available);
+
+		ChoiceDialog<Group> dlg = new ChoiceDialog<>(available.get(0), available);
+		dlg.setTitle("Gruppe hinzufügen");
+		dlg.setHeaderText("Welche Gruppe soll " + currentSelected.p.toString() + " hinzugefügt werden?");
+		Optional<Group> result = dlg.showAndWait();
+		if (result.isPresent()) {
+			Group group = result.get();
+			personGroups.add(group);
+			try {
+				personGroupRepository
+						.insert(new PersonGroup(-1L, currentSelected.p.getId(), group.getId(), null, null));
+			} catch (IOException e) {
+				personGroups.remove(group);
+				Alert alert = new Alert(AlertType.ERROR);
+				alert.setTitle("Fehler bei Gruppe");
+				alert.setContentText("Die hinzugefügte Gruppe konnte nicht gespeichert werden.\n" + e.getMessage());
+				alert.show();
+			}
+		}
 	}
 
 	@FXML
@@ -335,23 +401,42 @@ public class PersonOverviewController extends FXMLController {
 							super.updateItem(item, empty);
 
 							if (item != null) {
-								String name = item.getName();
-								if (name.equals(PersonType.ACTIVE.name())) {
-									name = "Aktiver";
-								} else if (name.equals(PersonType.RELATIVE.name())) {
-									name = "Verwandter";
-								} else if (name.equals(PersonType.STAFF.name())) {
-									name = "Funktionär";
-								}
+								String name = translate(item.getName());
 								setText(name);
 							}
 						}
+
 					};
 
 					return cell;
 				}
 			});
+
+			groupListView.setContextMenu(new GroupListContextMenu());
+
+			groupListView.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+
+				@Override
+				public void handle(MouseEvent event) {
+					if (event.getButton() == MouseButton.SECONDARY) {
+						groupListView.getContextMenu().show(groupListView, event.getScreenX(), event.getScreenY());
+					}
+
+				}
+			});
 		}
+
+	}
+
+	private String translate(String name) {
+		if (name.equals(PersonType.ACTIVE.name())) {
+			name = "Aktiver";
+		} else if (name.equals(PersonType.RELATIVE.name())) {
+			name = "Verwandter";
+		} else if (name.equals(PersonType.STAFF.name())) {
+			name = "Funktionär";
+		}
+		return name;
 	}
 
 	public void refresh() {
@@ -439,7 +524,14 @@ public class PersonOverviewController extends FXMLController {
 		}
 
 		public void changesToPerson() {
-			p.setBirth(Date.from(birth.get().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()));
+			LocalDate localDate = birth.get();
+
+			if (localDate != null) {
+				p.setBirth(Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()));
+			} else {
+				p.setBirth(null);
+			}
+
 			p.setPrename(prenameProperty.get());
 			p.setSurname(surnameProperty.get());
 		}
@@ -772,11 +864,13 @@ public class PersonOverviewController extends FXMLController {
 		@Override
 		public void setPerson(Person p) {
 			this.p = p;
+			background.execute(this);
 		}
 
 		@Override
 		protected Person call() throws Exception {
-			return personRepository.insert(p);
+			p = personRepository.insert(p);
+			return p;
 		}
 
 		@Override
@@ -784,6 +878,55 @@ public class PersonOverviewController extends FXMLController {
 			super.succeeded();
 			currentSelected = new ObservablePerson(p);
 			updateDetails();
+		}
+	}
+
+	private class GroupListContextMenu extends ContextMenu {
+
+		private Group selectedItem;
+
+		public GroupListContextMenu() {
+			setOnShowing(new EventHandler<WindowEvent>() {
+
+				@Override
+				public void handle(WindowEvent event) {
+					selectedItem = groupListView.getSelectionModel().getSelectedItem();
+				}
+			});
+
+			MenuItem item1 = new MenuItem("Hinzufügen");
+			item1.setOnAction(new EventHandler<ActionEvent>() {
+				public void handle(ActionEvent e) {
+					addGroupToUser();
+				}
+			});
+
+			MenuItem item2 = new MenuItem("Entfernen");
+			item2.setOnAction(new EventHandler<ActionEvent>() {
+				public void handle(ActionEvent e) {
+					if (selectedItem != null) {
+						removeGroupFromUser(selectedItem);
+					} else {
+						log.warn("No Group selected for delete.");
+					}
+				}
+			});
+			getItems().addAll(item1, item2);
+		}
+
+	}
+
+	private class ToStringGroup extends Group {
+
+		private static final long serialVersionUID = -1305476082760844995L;
+
+		public ToStringGroup(Group parent) {
+			super(parent.getId(), parent.getName(), parent.getChanged(), parent.getCreated());
+		}
+
+		@Override
+		public String toString() {
+			return translate(getName());
 		}
 	}
 }

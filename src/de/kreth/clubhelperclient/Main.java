@@ -74,6 +74,9 @@ public class Main extends Application {
 			showPersonOverview();
 
 		} catch (Exception e) {
+			if (log != null) {
+				log.error("Cannot Start!", e);
+			}
 			ExceptionDialog dlg = new ExceptionDialog(e);
 			dlg.show();
 		}
@@ -182,6 +185,7 @@ public class Main extends Application {
 
 		// Set person overview into the center of root layout.
 		rootLayout.setCenter(controller.getView());
+
 	}
 
 	private void initRootLayout() {

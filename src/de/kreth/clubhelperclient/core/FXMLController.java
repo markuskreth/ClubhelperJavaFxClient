@@ -24,7 +24,9 @@ public abstract class FXMLController implements InitializingBean, Initializable 
 		log = Logger.getLogger(getClass());
 	}
 
-	public abstract void setFxmlFilePath(String filePath);
+	public void setFxmlFilePath(String filePath) {
+		this.fxmlFilePath = filePath;
+	}
 
 	// Wenn diese Methode bereitgestellt wird, kann auf das Interface
 	// "Initializable" verzichtet werden.

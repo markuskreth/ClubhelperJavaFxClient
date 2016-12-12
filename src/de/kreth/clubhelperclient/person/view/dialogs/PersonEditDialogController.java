@@ -1,15 +1,11 @@
 package de.kreth.clubhelperclient.person.view.dialogs;
 
-import java.net.URL;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.ResourceBundle;
-
-import org.controlsfx.control.action.Action;
 
 import de.kreth.clubhelperbackend.pojo.Group;
 import de.kreth.clubhelperbackend.pojo.Person;
-import de.kreth.clubhelperclient.core.FXMLController;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
 import javafx.fxml.FXML;
@@ -17,8 +13,12 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory.ListSpinnerValueFactory;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
+import javafx.util.StringConverter;
 
-public class PersonEditDialogController extends FXMLController {
+public class PersonEditDialogController {
+
+	private Stage stage;
 
 	@FXML
 	protected TextField prename;
@@ -35,42 +35,53 @@ public class PersonEditDialogController extends FXMLController {
 	private PersonCreated handler;
 	ListSpinnerValueFactory<Group> factory;
 
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
-		log.debug("In initialize: " + prename);
-
-		if (factory != null) {
-			groupSpinner.setValueFactory(factory);
-		}
+	@FXML
+	public void onOk() {
+		createAndStorePerson();
 	}
 
 	@FXML
-	private void initialize() {
-		log.debug("In FXML initialize: " + prename);
-
-		if (factory != null) {
-			groupSpinner.setValueFactory(factory);
-		}
+	public void onCancel() {
+		stage.close();
 	}
 
-	@Override
-	public void setFxmlFilePath(String filePath) {
-	}
-
-	public void createAndStorePerson(Action a) {
+	public void createAndStorePerson() {
 		String prenameText = prename.getText();
 		String surnameText = surname.getText();
-		Date birthday = Date.from(birth.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant());
+		LocalDate birthValue = birth.getValue();
+		Date birthday = birthValue != null ? Date.from(birthValue.atStartOfDay(ZoneId.systemDefault()).toInstant())
+				: null;
 		Group value = groupSpinner.getValue();
 
-		Person p = new Person(1L, prenameText, surnameText, value.getName(), birthday, null, null);
+		Person p = new Person(-1L, prenameText, surnameText, value.getName(), birthday, null, null);
 		if (handler != null) {
 			handler.setPerson(p);
 		}
+		onCancel();
 	}
 
 	public void setGroups(ObservableMap<Long, Group> allGroups) {
 		factory = new ListSpinnerValueFactory<>(FXCollections.observableArrayList(allGroups.values()));
+		factory.setConverter(new StringConverter<Group>() {
+
+			@Override
+			public String toString(Group object) {
+				return object.getName();
+			}
+
+			@Override
+			public Group fromString(String string) {
+				for (Group g : factory.getItems()) {
+					if (g.getName().equals(string)) {
+						return g;
+					}
+
+				}
+
+				return new Group(-1L, string, null, null);
+			}
+		});
+
 		if (groupSpinner != null) {
 			groupSpinner.setValueFactory(factory);
 		}
@@ -82,5 +93,9 @@ public class PersonEditDialogController extends FXMLController {
 
 	public interface PersonCreated {
 		void setPerson(Person p);
+	}
+
+	public void setStage(Stage stage) {
+		this.stage = stage;
 	}
 }
