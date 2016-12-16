@@ -810,8 +810,54 @@ public class PersonOverviewController extends FXMLController {
 					}
 				}
 				Label type = new Label(type2);
-				TextField value = new TextField(c.getValue());
-				paneContacts.addRow(rowIndex, type, value);
+				final TextField value = new TextField(c.getValue());
+				value.setUserData(c);
+				value.textProperty().addListener((observable, oldValue, newValue) -> {
+					Contact con = (Contact) value.getUserData();
+					log.info(con + " changed from " + oldValue + " to " + newValue);
+					con.setValue(newValue);
+					con.setChanged(new Date());
+					background.execute(new Runnable() {
+
+						@Override
+						public void run() {
+							try {
+								contactRepository.update(con);
+								con.setValue(newValue);
+								con.setChanged(new Date());
+							} catch (IOException e) {
+								log.error("Update failed on " + con, e);
+							}
+						}
+					});
+				});
+
+				final Button delButton = new Button("Löschen");
+				delButton.setUserData(c);
+				delButton.setOnAction(new EventHandler<ActionEvent>() {
+
+					@Override
+					public void handle(ActionEvent event) {
+						Button bt = (Button) event.getSource();
+						final Contact c = (Contact) bt.getUserData();
+						Integer rowIndex2 = GridPane.getRowIndex(bt);
+
+						paneContacts.getChildren().remove(rowIndex2);
+						background.execute(new Runnable() {
+
+							@Override
+							public void run() {
+								try {
+									contactRepository.delete(c);
+								} catch (IOException e) {
+									log.warn("Konnte nicht löschen: " + c, e);
+								}
+							}
+						});
+					}
+				});
+
+				paneContacts.addRow(rowIndex, type, value, delButton);
 				rowIndex++;
 			}
 

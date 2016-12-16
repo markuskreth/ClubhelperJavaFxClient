@@ -98,6 +98,17 @@ public abstract class Repository<T extends Data> {
 
 	}
 
+	public void delete(T obj) throws IOException {
+		RestTemplate restTemplate;
+
+		try {
+			restTemplate = createRestTemplate();
+			restTemplate.delete(getBaseUrl() + "/" + obj.getId(), obj);
+		} catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+			throw new IOException(e);
+		}
+	}
+
 	public void update(T obj) throws IOException {
 		RestTemplate restTemplate;
 		try {
