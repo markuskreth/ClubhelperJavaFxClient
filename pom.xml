@@ -1,8 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>clubhelper-client</artifactId>
 	<name>ClubhelperClient</name>
+
 	<properties>
 		<java-version>1.8</java-version>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -13,6 +15,7 @@
 		<com.fasterxml.jackson-version>1.9.13</com.fasterxml.jackson-version>
 		<com.fasterxml.jacksoncore-version>2.7.4</com.fasterxml.jacksoncore-version>
 	</properties>
+
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<testSourceDirectory>test</testSourceDirectory>
@@ -33,7 +36,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.1</version>
 				<executions>
 					<execution>
 						<id>default-compile</id>
@@ -149,6 +151,18 @@
 			<artifactId>jasperreports</artifactId>
 			<version>6.3.1</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.lowagie/itext -->
+		<dependency>
+			<groupId>com.lowagie</groupId>
+			<artifactId>itext</artifactId>
+			<version>2.1.7</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.olap4j/olap4j -->
+		<dependency>
+			<groupId>org.olap4j</groupId>
+			<artifactId>olap4j</artifactId>
+			<version>1.2.0</version>
+		</dependency>
 		<dependency>
 			<groupId>com.googlecode.libphonenumber</groupId>
 			<artifactId>libphonenumber</artifactId>
@@ -157,7 +171,7 @@
 		<dependency>
 			<groupId>de.kreth</groupId>
 			<artifactId>clubhelperdata</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 
 		<dependency>
