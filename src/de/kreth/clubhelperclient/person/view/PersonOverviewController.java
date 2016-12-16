@@ -21,11 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.google.i18n.phonenumbers.NumberParseException;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat;
-import com.google.i18n.phonenumbers.Phonenumber.PhoneNumber;
-
 import de.kreth.clubhelperbackend.pojo.Contact;
 import de.kreth.clubhelperbackend.pojo.Group;
 import de.kreth.clubhelperbackend.pojo.Person;
@@ -39,6 +34,7 @@ import de.kreth.clubhelperclient.person.model.GroupRepository;
 import de.kreth.clubhelperclient.person.model.PersonGroupRepository;
 import de.kreth.clubhelperclient.person.model.PersonRepository;
 import de.kreth.clubhelperclient.person.model.RelativeRepository;
+import de.kreth.clubhelperclient.person.view.ContactRowController.ContactDeleted;
 import de.kreth.clubhelperclient.person.view.dialogs.PersonEditDialogController;
 import de.kreth.clubhelperclient.reports.data.TrainingsPlanPerson;
 import javafx.beans.property.ObjectProperty;
@@ -57,6 +53,8 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -76,6 +74,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -96,8 +95,8 @@ public class PersonOverviewController extends FXMLController {
 		super();
 		background = Executors.newCachedThreadPool();
 	}
-
 	@FXML
+	
 	private TableView<Person> tblPersonen;
 
 	@FXML
@@ -134,7 +133,7 @@ public class PersonOverviewController extends FXMLController {
 	private GridPane paneRelations;
 
 	@FXML
-	private GridPane paneContacts;
+	private VBox paneContacts;
 
 	@FXML
 	private TextField filterText;
@@ -740,8 +739,6 @@ public class PersonOverviewController extends FXMLController {
 		private final Person person;
 		List<Contact> result = Collections.emptyList();
 
-		PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
-
 		public ContactFetchTask(Person p) {
 			this.person = p;
 			log.trace("ContactFetchTask initalized");
@@ -781,38 +778,23 @@ public class PersonOverviewController extends FXMLController {
 
 			log.debug("Updating Views...");
 
-			int rowIndex = 0;
-
-			String lastType = null;
-
 			for (Contact c : result) {
 
-				String type2 = c.getType();
-
-				if (lastType == null) {
-					try {
-						PhoneNumber parsed = phoneUtil.parse(c.getValue(), "DE");
-						currentTelephone = phoneUtil.format(parsed, PhoneNumberFormat.NATIONAL);
-						lastType = type2;
-					} catch (NumberParseException e) {
-						e.printStackTrace();
-					}
-
-				} else {
-					if (!lastType.toLowerCase().contains("mobile") && type2.toLowerCase().contains("mobile")) {
-						try {
-							PhoneNumber parsed = phoneUtil.parse(c.getValue(), "DE");
-							currentTelephone = phoneUtil.format(parsed, PhoneNumberFormat.NATIONAL);
-							lastType = type2;
-						} catch (NumberParseException e) {
-							e.printStackTrace();
-						}
-					}
+				final FXMLLoader loader = new FXMLLoader();
+				loader.setLocation(getClass().getResource("ContactRow.fxml"));
+				ContactRowController con = new ContactRowController(c, background, contactRepository);
+				
+				con.setDeleteAction(new RemoveRowTask());
+				loader.setController(con);
+								
+				try {
+					Node contactRow = loader.load();
+					con.init();
+					paneContacts.getChildren().add(contactRow);
+				} catch (IOException e1) {
+					log.error("Cound not add Contact: " + c, e1);
 				}
-				Label type = new Label(type2);
-				TextField value = new TextField(c.getValue());
-				paneContacts.addRow(rowIndex, type, value);
-				rowIndex++;
+
 			}
 
 		}
@@ -927,6 +909,33 @@ public class PersonOverviewController extends FXMLController {
 		@Override
 		public String toString() {
 			return translate(getName());
+		}
+	}
+	
+	private class RemoveRowTask extends Task<Void> implements ContactDeleted {
+
+		private Parent rowItem;
+		private Contact c;
+		
+		@Override
+		public void deleted(Contact c, Parent rowItem) {
+			Integer index = GridPane.getRowIndex(rowItem);
+			log.debug("removing Contact " + c + " in Row " + index);
+			this.rowItem = rowItem;
+			this.c = c;
+			this.run();
+		}
+
+		@Override
+		protected Void call() throws Exception {
+			return null;
+		}
+		
+		@Override
+		protected void succeeded() {
+			super.succeeded();
+			log.debug("removing Contact " + c );
+			paneContacts.getChildren().remove(rowItem);
 		}
 	}
 }

@@ -1,5 +1,6 @@
 package de.kreth.clubhelperclient;
 
+import java.util.List;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -121,8 +122,9 @@ public class Main extends Application {
 				}
 			}
 		};
-
-		if (menuServerUrl != null) {
+		List<String> params = getParameters().getRaw();
+		
+		if (menuServerUrl != null && params.isEmpty()) {
 
 			ToggleGroup group = new ToggleGroup();
 			RadioMenuItem item1 = new RadioMenuItem("http://localhost:8090/ClubHelperBackend/");
@@ -156,6 +158,8 @@ public class Main extends Application {
 			item4.setOnAction(menuHandler);
 			menuServerUrl.getItems().add(item4);
 
+		} else if(params.isEmpty() == false) {
+			menuServerUrl.setVisible(false);
 		}
 
 	}
@@ -172,7 +176,12 @@ public class Main extends Application {
 
 		actionStack = appContext.getBean(ActionStack.class);
 
-		remoteHolder.setRemoteUrl(prefs.get(REMOTE_KEY, remoteHolder.getRemoteUrl()));
+		List<String> params = getParameters().getRaw();
+		if(params.isEmpty()) {
+			remoteHolder.setRemoteUrl(prefs.get(REMOTE_KEY, remoteHolder.getRemoteUrl()));
+		} else {
+			remoteHolder.setRemoteUrl(params.get(0));
+		}
 
 		log.info(String.format("%s %s wurde gestartet mit Remote %s", name, version, remoteHolder.getRemoteUrl()));
 
