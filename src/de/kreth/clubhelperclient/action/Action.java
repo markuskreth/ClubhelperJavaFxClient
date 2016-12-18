@@ -2,6 +2,8 @@ package de.kreth.clubhelperclient.action;
 
 import java.io.Serializable;
 
+import org.apache.log4j.Logger;
+
 import de.kreth.clubhelperbackend.pojo.Data;
 
 public abstract class Action<T extends Data> implements Serializable {
@@ -11,10 +13,13 @@ public abstract class Action<T extends Data> implements Serializable {
 	private final T original;
 	private final T changed;
 
+	protected Logger log;
+
 	public Action(T original, T changed) {
 		super();
 		this.original = original;
 		this.changed = changed;
+		this.log = Logger.getLogger(getClass());
 	}
 
 	public T getChanged() {

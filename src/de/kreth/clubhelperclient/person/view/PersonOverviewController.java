@@ -29,6 +29,7 @@ import de.kreth.clubhelperbackend.pojo.PersonType;
 import de.kreth.clubhelperbackend.pojo.Relative;
 import de.kreth.clubhelperclient.action.RepositoryUpdateAction;
 import de.kreth.clubhelperclient.core.FXMLController;
+import de.kreth.clubhelperclient.group.GroupEditorController;
 import de.kreth.clubhelperclient.person.model.ContactRepository;
 import de.kreth.clubhelperclient.person.model.GroupRepository;
 import de.kreth.clubhelperclient.person.model.PersonGroupRepository;
@@ -67,7 +68,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -122,13 +122,13 @@ public class PersonOverviewController extends FXMLController {
 	private Button delPerson;
 
 	@FXML
+	private Button groupRemoveBtn;
+	
+	@FXML
 	private Label detailAge;
 
 	@FXML
-	private ListView<Group> groupListView;
-
-	@FXML
-	private ScrollPane detailScrollPane;
+	private ListView<PersonGroup> groupListView;
 
 	@FXML
 	private GridPane paneRelations;
@@ -141,9 +141,11 @@ public class PersonOverviewController extends FXMLController {
 
 	private ObservableList<Person> personData = FXCollections.observableArrayList();
 	private ObservableMap<Long, Group> allGroups = FXCollections.observableHashMap();
-	private ObservableList<Group> personGroups = FXCollections.observableArrayList();
+	private ObservableMap<Long, ObservableList<PersonGroup>> personGroups = FXCollections.observableHashMap();
 
 	private ObservablePerson currentSelected = null;
+	private ObservableList<PersonGroup> currentPersonsGroups = FXCollections.observableArrayList();
+	
 	private String currentTelephone = "";
 
 	private PersonRepository personRepository;
@@ -177,11 +179,6 @@ public class PersonOverviewController extends FXMLController {
 	@Autowired
 	public void setPersonGroupRepository(PersonGroupRepository personGroupRepository) {
 		this.personGroupRepository = personGroupRepository;
-	}
-
-	@FXML
-	private void refreshPersonList() {
-		refresh();
 	}
 	
 	@FXML
@@ -288,30 +285,80 @@ public class PersonOverviewController extends FXMLController {
 		}
 	}
 
-	protected void removeGroupFromUser(Group selectedItem2) {
-		if (selectedItem2 != null) {
-			personGroups.remove(selectedItem2);
+	@FXML
+	private void removeGroupFromPerson() {
+		PersonGroup selectedItem = groupListView.getSelectionModel().getSelectedItem();
+		if (selectedItem != null) {
+			personGroups.remove(selectedItem);
+			
+		}
+	}
+	
+	@FXML
+	private void showGroupEditor() {
+		GroupEditorController contr = new GroupEditorController(groupRepository);
+		
+		FXMLLoader ldr = new FXMLLoader();
+		ldr.setLocation(contr.getClass().getResource("GroupEditor.fxml"));
+		ldr.setController(contr);
+		try {
+			Parent view = ldr.load();
+			contr.init(allGroups);
+			Stage stage = new Stage();
+
+			stage.initModality(Modality.WINDOW_MODAL);
+			stage.initStyle(StageStyle.DECORATED);
+
+			stage.initOwner(tblPersonen.getScene().getWindow());
+			stage.setTitle("Neue Person");
+
+			Scene sc = new Scene(view);
+			stage.setScene(sc);
+			stage.show();
+			
+		} catch (IOException e) {
+			log.error("Cannot show GroupEditor", e);
+		}
+	}
+	
+	protected void removeGroupFromUser(PersonGroup selectedItem) {
+		if (selectedItem != null) {
+			personGroups.remove(selectedItem);
 			if (currentSelected != null && currentSelected.p != null) {
-				log.info("Removed " + selectedItem2.getName() + " from " + currentSelected.p.toString());
+				log.info("Removed " + allGroups.get(selectedItem.getId()).getName() + " from " + currentSelected.p.toString());
 			} else {
 				log.warn("No Person selected currently!?");
 			}
 		} else {
-			log.warn("Group to remove was " + selectedItem2);
+			log.warn("Group to remove was " + selectedItem);
 		}
 	}
 
-	protected void addGroupToUser() {
+	@FXML
+	protected void addGroupToPerson() {
 
 		List<Group> available = new ArrayList<>();
 		log.debug("AllGroups size: " + allGroups.size());
 		log.trace("AllGroups: " + allGroups);
 
+		final ObservableList<PersonGroup> pg = FXCollections.observableArrayList();
+		if(personGroups.containsKey(currentSelected.p.getId())) {
+			pg.addAll(personGroups.get(currentSelected.p.getId()));
+		} else {
+			personGroups.put(currentSelected.p.getId(), pg);
+		}
+		
 		for (Group g : allGroups.values()) {
-			if (!personGroups.contains(g)) {
+			boolean found = false;
+			for( PersonGroup persGr: pg) {
+				if(persGr.getId() == g.getId()) {
+					found = true;
+					break;
+				}
+			}
+			if (found == false) {
 				available.add(new ToStringGroup(g));
 			}
-			available.remove(g);
 		}
 
 		log.info("Available Groups to choose from: " + available);
@@ -322,12 +369,13 @@ public class PersonOverviewController extends FXMLController {
 		Optional<Group> result = dlg.showAndWait();
 		if (result.isPresent()) {
 			Group group = result.get();
-			personGroups.add(group);
+			PersonGroup inserted = null;
 			try {
-				personGroupRepository
+				inserted = personGroupRepository
 						.insert(new PersonGroup(-1L, currentSelected.p.getId(), group.getId(), null, null));
+
+				pg.add(inserted);
 			} catch (IOException e) {
-				personGroups.remove(group);
 				Alert alert = new Alert(AlertType.ERROR);
 				alert.setTitle("Fehler bei Gruppe");
 				alert.setContentText("Die hinzugefügte Gruppe konnte nicht gespeichert werden.\n" + e.getMessage());
@@ -363,7 +411,7 @@ public class PersonOverviewController extends FXMLController {
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 
-		refresh();
+		refreshPersonList();
 
 		if (tblPersonen != null) {
 
@@ -426,19 +474,19 @@ public class PersonOverviewController extends FXMLController {
 
 			delPerson.setDisable(true);
 
-			groupListView.setItems(personGroups);
-			groupListView.setCellFactory(new Callback<ListView<Group>, ListCell<Group>>() {
+			groupListView.setItems(currentPersonsGroups);
+			groupListView.setCellFactory(new Callback<ListView<PersonGroup>, ListCell<PersonGroup>>() {
 
 				@Override
-				public ListCell<Group> call(ListView<Group> param) {
-					ListCell<Group> cell = new ListCell<Group>() {
+				public ListCell<PersonGroup> call(ListView<PersonGroup> param) {
+					ListCell<PersonGroup> cell = new ListCell<PersonGroup>() {
 						@Override
-						protected void updateItem(Group item, boolean empty) {
+						protected void updateItem(PersonGroup item, boolean empty) {
 
 							super.updateItem(item, empty);
 
 							if (item != null) {
-								String name = translate(item.getName());
+								String name = translate(allGroups.get(item.getGroupId()).getName());
 								setText(name);
 							}
 						}
@@ -461,6 +509,19 @@ public class PersonOverviewController extends FXMLController {
 
 				}
 			});
+			groupListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<PersonGroup>() {
+
+				@Override
+				public void changed(ObservableValue<? extends PersonGroup> observable, PersonGroup oldValue, PersonGroup newValue) {
+					if(newValue != null) {
+						groupRemoveBtn.setDisable(false);
+					} else {
+						groupRemoveBtn.setDisable(true);
+					}
+						
+					
+				}
+			});
 		}
 
 	}
@@ -476,7 +537,8 @@ public class PersonOverviewController extends FXMLController {
 		return name;
 	}
 
-	public void refresh() {
+	@FXML
+	public void refreshPersonList() {
 
 		background.execute(new Runnable() {
 
@@ -485,8 +547,11 @@ public class PersonOverviewController extends FXMLController {
 				try {
 					personData.clear();
 					personData.addAll(personRepository.all());
+					for(Person p: personData) {
+						background.execute(new PersonGroupFetchTask(p));
+					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error("unable to fetch Persons", e);
 				}
 			}
 		});
@@ -509,7 +574,12 @@ public class PersonOverviewController extends FXMLController {
 			log.trace("Submitting ContactFetchTask");
 			background.execute(new ContactFetchTask(currentSelected.p));
 			background.execute(new RelationFetchTask(currentSelected.p));
-			background.execute(new PersonGroupFetchTask(currentSelected.p));
+			currentPersonsGroups.clear();
+			if(personGroups.containsKey(currentSelected.getId())) {
+				currentPersonsGroups.addAll(personGroups.get(currentSelected.getId()));
+			} else {
+				background.execute(new PersonGroupFetchTask(currentSelected.p));
+			}
 
 		} else {
 			detailPersonPrename.setText("");
@@ -550,6 +620,10 @@ public class PersonOverviewController extends FXMLController {
 				birth = new SimpleObjectProperty<LocalDate>();
 
 			initListener();
+		}
+
+		public Long getId() {
+			return p.getId();
 		}
 
 		private void initListener() {
@@ -624,6 +698,12 @@ public class PersonOverviewController extends FXMLController {
 		protected void succeeded() {
 
 			super.succeeded();
+			if(personGroups.containsKey(person.getId()) == false) {
+				personGroups.put(person.getId(), FXCollections.observableArrayList());
+			}
+			final ObservableList<PersonGroup> persGrList = personGroups.get(person.getId());
+			persGrList.clear();
+			
 			if (result.isEmpty()) {
 				String type = person.getType();
 				Group group = null;
@@ -641,16 +721,17 @@ public class PersonOverviewController extends FXMLController {
 					log.warn("Group for type " + type + " does not exist! creating and updating Person.");
 					background.execute(new Task<Void>() {
 
-						Group inserted;
+						PersonGroup pg;
 
 						@Override
 						protected Void call() throws Exception {
 							try {
 								Group temp = groupRepository.insert(g1);
-								PersonGroup pg = new PersonGroup(-1L, PersonGroupFetchTask.this.person.getId(),
+								allGroups.put(temp.getId(), temp);
+								pg = new PersonGroup(-1L, PersonGroupFetchTask.this.person.getId(),
 										temp.getId(), null, null);
-								personGroupRepository.insert(pg);
-								inserted = temp;
+								pg= personGroupRepository.insert(pg);
+								persGrList.add(pg);
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
@@ -660,13 +741,12 @@ public class PersonOverviewController extends FXMLController {
 						@Override
 						protected void succeeded() {
 							super.succeeded();
-							personGroups.add(inserted);
 							groupListView.refresh();
 						}
 					});
 				} else {
 					log.warn("Persontype exists as group, updating Person with group.");
-					personGroups.add(group);
+
 					final PersonGroup pg = new PersonGroup(-1L, PersonGroupFetchTask.this.person.getId(), group.getId(),
 							null, null);
 
@@ -674,8 +754,8 @@ public class PersonOverviewController extends FXMLController {
 
 						@Override
 						public void run() {
-							try {
-								personGroupRepository.insert(pg);
+							try {								
+								persGrList.add(personGroupRepository.insert(pg));
 							} catch (IOException e) {
 								log.warn("could not insert PerosnGroup for " + person + " with groupId="
 										+ pg.getGroupId(), e);
@@ -687,8 +767,12 @@ public class PersonOverviewController extends FXMLController {
 			} else {
 				for (PersonGroup g : result) {
 					if (allGroups.containsKey(g.getGroupId())) {
-						personGroups.add(allGroups.get(g.getGroupId()));
+						persGrList.add(g);
 					}
+				}
+				if(currentSelected != null && currentSelected.getId().equals(person.getId())) {
+					currentPersonsGroups.clear();
+					currentPersonsGroups.addAll(persGrList);
 				}
 			}
 
@@ -904,7 +988,7 @@ public class PersonOverviewController extends FXMLController {
 
 	private class GroupListContextMenu extends ContextMenu {
 
-		private Group selectedItem;
+		private PersonGroup selectedItem;
 
 		public GroupListContextMenu() {
 			setOnShowing(new EventHandler<WindowEvent>() {
@@ -918,7 +1002,7 @@ public class PersonOverviewController extends FXMLController {
 			MenuItem item1 = new MenuItem("Hinzufügen");
 			item1.setOnAction(new EventHandler<ActionEvent>() {
 				public void handle(ActionEvent e) {
-					addGroupToUser();
+					addGroupToPerson();
 				}
 			});
 

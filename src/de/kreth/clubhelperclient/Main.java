@@ -113,7 +113,7 @@ public class Main extends Application {
 			public void handle(ActionEvent event) {
 				String text = ((MenuItem) event.getSource()).getText();
 				remoteHolder.setRemoteUrl(text);
-				controller.refresh();
+				controller.refreshPersonList();
 				prefs.put(REMOTE_KEY, text);
 				try {
 					prefs.flush();

@@ -2,6 +2,7 @@
 
 <?language javascript?>
 <?import javafx.geometry.Insets?>
+<?import javafx.geometry.Point3D?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
@@ -128,13 +129,31 @@
                   <Button fx:id="detailCommit" layoutX="350.0" layoutY="758.0" mnemonicParsing="false" onAction="#storePerson" text="Speichern" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="14.0" />
                   <Button fx:id="printTr" layoutX="213.0" layoutY="758.0" mnemonicParsing="false" onAction="#printTrainingsplan" text="Trainingsplan" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="106.0" />
                   <ListView fx:id="groupListView" layoutX="419.0" layoutY="29.0" prefHeight="100.0" prefWidth="123.0" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="29.0" />
+                  <Button layoutX="420.0" layoutY="135.0" mnemonicParsing="false" onAction="#addGroupToPerson" AnchorPane.rightAnchor="96.0" AnchorPane.topAnchor="135.0">
+                     <graphic>
+                        <ImageView fitHeight="18.0" fitWidth="18.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="/add.png" />
+                           </image>
+                        </ImageView>
+                     </graphic>
+                  </Button>
+                  <Button layoutX="508.0" layoutY="135.0" mnemonicParsing="false" onAction="#removeGroupFromPerson" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="135.0">
+                     <graphic>
+                        <ImageView fitHeight="18.0" fitWidth="18.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="/remove.png" />
+                           </image>
+                        </ImageView>
+                     </graphic>
+                  </Button>
                </children>
             </AnchorPane>
         </items>
       </SplitPane>
-      <HBox prefHeight="64.0" prefWidth="914.0" spacing="5.0">
+      <AnchorPane layoutX="526.0" layoutY="-2.0" prefHeight="61.0" prefWidth="920.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <Button fx:id="refreshBtn" mnemonicParsing="false" onAction="#refreshPersonList">
+            <Button fx:id="refreshBtn" layoutX="14.0" layoutY="10.0" mnemonicParsing="false" onAction="#refreshPersonList" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="10.0">
                <graphic>
                   <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -143,16 +162,19 @@
                   </ImageView>
                </graphic>
             </Button>
-            <Button fx:id="addPerson" mnemonicParsing="false" onAction="#addPerson">
+            <Button fx:id="addPerson" layoutX="67.0" layoutY="12.0" mnemonicParsing="false" onAction="#addPerson" AnchorPane.leftAnchor="67.0" AnchorPane.topAnchor="12.0">
                <graphic>
                   <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="/add.png" />
                      </image>
+                     <rotationAxis>
+                        <Point3D />
+                     </rotationAxis>
                   </ImageView>
                </graphic>
             </Button>
-            <Button fx:id="delPerson" mnemonicParsing="false" onAction="#delPerson">
+            <Button fx:id="delPerson" layoutX="126.0" layoutY="14.0" mnemonicParsing="false" onAction="#delPerson" AnchorPane.leftAnchor="126.0" AnchorPane.topAnchor="14.0">
                <graphic>
                   <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -161,13 +183,22 @@
                   </ImageView>
                </graphic>
             </Button>
+            <Button fx:id="groupEdtBtn" layoutX="544.0" layoutY="16.0" mnemonicParsing="false" onAction="#showGroupEditor">
+               <graphic>
+                  <ImageView fitHeight="35.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="/users-group.jpg" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
          </children>
-         <opaqueInsets>
-            <Insets />
-         </opaqueInsets>
          <padding>
-            <Insets left="5.0" top="5.0" />
+            <Insets bottom="2.0" left="5.0" right="5.0" top="2.0" />
          </padding>
-      </HBox>
+         <rotationAxis>
+            <Point3D />
+         </rotationAxis>
+      </AnchorPane>
    </children>
 </AnchorPane>
