@@ -59,6 +59,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.DatePicker;
@@ -153,11 +154,6 @@ public class PersonOverviewController extends FXMLController {
 
 	public boolean relativesLoading;
 
-	@FXML
-	private void initialize() {
-		// does nothing.
-	}
-
 	@Autowired
 	public void setContactRepository(ContactRepository contactRepository) {
 		this.contactRepository = contactRepository;
@@ -183,6 +179,11 @@ public class PersonOverviewController extends FXMLController {
 		this.personGroupRepository = personGroupRepository;
 	}
 
+	@FXML
+	private void refreshPersonList() {
+		refresh();
+	}
+	
 	@FXML
 	private void showGroupContextMenu() {
 		Alert msg = new Alert(AlertType.INFORMATION);
@@ -248,8 +249,43 @@ public class PersonOverviewController extends FXMLController {
 
 	@FXML
 	protected void delPerson(ActionEvent ev) {
-		log.debug("deleting " + currentSelected);
+		Alert dlg = new Alert(AlertType.CONFIRMATION);
+		dlg.setTitle("Löschen bestätigen");
+		dlg.setHeaderText(currentSelected.p.toString());
+		dlg.setContentText("Soll diese Person wirklich gelöscht werden?");
+		Optional<ButtonType> res = dlg.showAndWait();
+		if (res.isPresent()) {
+			ButtonType buttonType = res.get();
+			final Person toDelete = currentSelected.p;
+			if(ButtonType.YES.equals(buttonType) || ButtonType.OK.equals(buttonType)) {
+				background.execute(new Task<Void>() {
 
+					@Override
+					protected Void call() throws Exception {
+						personRepository.delete(toDelete);
+						return null;
+					}
+					
+					@Override
+					protected void failed() {
+						super.failed();
+						if(log.isDebugEnabled()) {
+							ExceptionDialog dlg = new ExceptionDialog(getException());
+							dlg.setHeaderText("nicht gelöscht: " + toDelete);
+						} 
+						log.warn(toDelete + " not deleted!", getException());
+					}
+					
+					@Override
+					protected void succeeded() {
+						super.succeeded();
+						log.debug("Successfully deleted " + toDelete + " on server. Removing...");
+						personData.remove(toDelete);
+					}
+				});
+				
+			}
+		}
 	}
 
 	protected void removeGroupFromUser(Group selectedItem2) {
@@ -348,8 +384,10 @@ public class PersonOverviewController extends FXMLController {
 				public void changed(ObservableValue<? extends Person> observable, Person oldValue, Person newValue) {
 					if (newValue != null) {
 						currentSelected = new ObservablePerson(newValue);
+						delPerson.setDisable(false);
 					} else {
 						currentSelected = null;
+						delPerson.setDisable(true);
 					}
 					currentTelephone = "";
 					updateDetails();
@@ -453,7 +491,6 @@ public class PersonOverviewController extends FXMLController {
 			}
 		});
 
-		allGroups.clear();
 		background.execute(new GroupFetchTask());
 	}
 
@@ -726,6 +763,8 @@ public class PersonOverviewController extends FXMLController {
 		protected List<Group> call() throws Exception {
 			log.debug("Calling Group Repository...");
 			List<Group> groups = groupRepository.all();
+
+			allGroups.clear();
 			for (Group g : groups) {
 				allGroups.put(g.getId(), g);
 			}
@@ -746,7 +785,7 @@ public class PersonOverviewController extends FXMLController {
 
 		@Override
 		protected List<Contact> call() throws Exception {
-			log.debug("Calling Contact Repository...");
+			log.debug("Fetching contacts for " + person);
 
 			try {
 				result = contactRepository.getByParentId(person.getId());
@@ -784,11 +823,11 @@ public class PersonOverviewController extends FXMLController {
 				loader.setLocation(getClass().getResource("ContactRow.fxml"));
 				ContactRowController con = new ContactRowController(c, background, contactRepository);
 				
-				con.setDeleteAction(new RemoveRowTask());
 				loader.setController(con);
 								
 				try {
 					Node contactRow = loader.load();
+					con.setDeleteAction(new RemoveRowTask());
 					con.init();
 					paneContacts.getChildren().add(contactRow);
 				} catch (IOException e1) {
