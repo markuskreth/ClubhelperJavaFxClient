@@ -108,6 +108,7 @@
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
+        			<finalName>clubhelper-client</finalName>
 				</configuration>
 				<executions>
 					<execution>
@@ -195,6 +196,6 @@
 	<parent>
 		<groupId>de.kreth</groupId>
 		<artifactId>clubhelper-parent</artifactId>
-		<version>1.0.1-SNAPSHOT</version>
+		<version>1.0.2-SNAPSHOT</version>
 	</parent>
 </project>
