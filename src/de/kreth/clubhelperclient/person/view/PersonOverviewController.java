@@ -96,8 +96,8 @@ public class PersonOverviewController extends FXMLController {
 		super();
 		background = Executors.newCachedThreadPool();
 	}
-	@FXML
 	
+	@FXML
 	private TableView<Person> tblPersonen;
 
 	@FXML
@@ -488,6 +488,8 @@ public class PersonOverviewController extends FXMLController {
 							if (item != null) {
 								String name = translate(allGroups.get(item.getGroupId()).getName());
 								setText(name);
+							} else {
+								setText(null);
 							}
 						}
 
