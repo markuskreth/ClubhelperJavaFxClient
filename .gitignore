@@ -17,3 +17,5 @@ README.html
 .idea
 /logs
 *.log*
+# Compiled jasper Reports
+*.jasper
