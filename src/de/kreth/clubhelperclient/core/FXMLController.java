@@ -49,14 +49,14 @@ public abstract class FXMLController implements InitializingBean, Initializable 
 			if (fxmlStream == null) {
 				throw new IOException("Resource " + fxmlFilePath + " not found!");
 			}
-
+			
 			FXMLLoader loader = new FXMLLoader();
 			loader.setController(this);
 
 			try {
-				this.view = (loader.load(fxmlStream));
+				this.view = loader.load(fxmlStream);
 			} catch (Exception e) {
-				log.error("Fehler beim Laden der FXML " + fxmlFilePath, e);
+				log.error("Fehler beim Laden der FXML " + fxmlFilePath + "; URL: " + resource, e);
 			}
 		}
 	}
