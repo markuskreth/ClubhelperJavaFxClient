@@ -13,10 +13,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.controlsfx.dialog.ExceptionDialog;
+import org.controlsfx.dialog.ProgressDialog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -35,8 +39,11 @@ import de.kreth.clubhelperclient.person.model.GroupRepository;
 import de.kreth.clubhelperclient.person.model.PersonGroupRepository;
 import de.kreth.clubhelperclient.person.model.PersonRepository;
 import de.kreth.clubhelperclient.person.model.RelativeRepository;
+import de.kreth.clubhelperclient.person.model.SelectablePerson;
 import de.kreth.clubhelperclient.person.view.ContactRowController.ContactDeleted;
 import de.kreth.clubhelperclient.person.view.dialogs.PersonEditDialogController;
+import de.kreth.clubhelperclient.reports.data.ListPerson;
+import de.kreth.clubhelperclient.reports.data.PhoneListPerson;
 import de.kreth.clubhelperclient.reports.data.TrainingsPlanPerson;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -64,6 +71,8 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -71,6 +80,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.CheckBoxListCell;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
@@ -81,6 +91,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
@@ -96,7 +107,7 @@ public class PersonOverviewController extends FXMLController {
 		super();
 		background = Executors.newCachedThreadPool();
 	}
-	
+
 	@FXML
 	private TableView<Person> tblPersonen;
 
@@ -123,7 +134,7 @@ public class PersonOverviewController extends FXMLController {
 
 	@FXML
 	private Button groupRemoveBtn;
-	
+
 	@FXML
 	private Label detailAge;
 
@@ -139,13 +150,16 @@ public class PersonOverviewController extends FXMLController {
 	@FXML
 	private TextField filterText;
 
+	@FXML
+	private Button printLists;
+
 	private ObservableList<Person> personData = FXCollections.observableArrayList();
 	private ObservableMap<Long, Group> allGroups = FXCollections.observableHashMap();
 	private ObservableMap<Long, ObservableList<PersonGroup>> personGroups = FXCollections.observableHashMap();
 
 	private ObservablePerson currentSelected = null;
 	private ObservableList<PersonGroup> currentPersonsGroups = FXCollections.observableArrayList();
-	
+
 	private String currentTelephone = "";
 
 	private PersonRepository personRepository;
@@ -180,7 +194,13 @@ public class PersonOverviewController extends FXMLController {
 	public void setPersonGroupRepository(PersonGroupRepository personGroupRepository) {
 		this.personGroupRepository = personGroupRepository;
 	}
-	
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		super.afterPropertiesSet();
+		refreshPersonList();
+	}
+
 	@FXML
 	private void showGroupContextMenu() {
 		Alert msg = new Alert(AlertType.INFORMATION);
@@ -254,7 +274,7 @@ public class PersonOverviewController extends FXMLController {
 		if (res.isPresent()) {
 			ButtonType buttonType = res.get();
 			final Person toDelete = currentSelected.p;
-			if(ButtonType.YES.equals(buttonType) || ButtonType.OK.equals(buttonType)) {
+			if (ButtonType.YES.equals(buttonType) || ButtonType.OK.equals(buttonType)) {
 				background.execute(new Task<Void>() {
 
 					@Override
@@ -262,17 +282,17 @@ public class PersonOverviewController extends FXMLController {
 						personRepository.delete(toDelete);
 						return null;
 					}
-					
+
 					@Override
 					protected void failed() {
 						super.failed();
-						if(log.isDebugEnabled()) {
+						if (log.isDebugEnabled()) {
 							ExceptionDialog dlg = new ExceptionDialog(getException());
 							dlg.setHeaderText("nicht gelöscht: " + toDelete);
-						} 
+						}
 						log.warn(toDelete + " not deleted!", getException());
 					}
-					
+
 					@Override
 					protected void succeeded() {
 						super.succeeded();
@@ -280,24 +300,39 @@ public class PersonOverviewController extends FXMLController {
 						personData.remove(toDelete);
 					}
 				});
-				
+
 			}
 		}
 	}
 
 	@FXML
 	private void removeGroupFromPerson() {
-		PersonGroup selectedItem = groupListView.getSelectionModel().getSelectedItem();
+		final PersonGroup selectedItem = groupListView.getSelectionModel().getSelectedItem();
 		if (selectedItem != null) {
-			personGroups.remove(selectedItem);
+			log.info("Removing " + selectedItem + " from " + currentSelected);
+			personGroups.get(selectedItem.getPersonId()).remove(selectedItem);
+			currentPersonsGroups.remove(selectedItem);
 			
+			background.execute(new Runnable() {
+				
+				@Override
+				public void run() {
+
+					try {
+						personGroupRepository.delete(selectedItem);
+						log.debug("Successfully removed " + selectedItem + " from " + currentSelected);
+					} catch (IOException e) {
+						log.error("Unable to remove " + selectedItem + " from " + currentSelected);
+					}
+				}
+			});
 		}
 	}
-	
+
 	@FXML
 	private void showGroupEditor() {
 		GroupEditorController contr = new GroupEditorController(groupRepository);
-		
+
 		FXMLLoader ldr = new FXMLLoader();
 		ldr.setLocation(contr.getClass().getResource("GroupEditor.fxml"));
 		ldr.setController(contr);
@@ -315,17 +350,18 @@ public class PersonOverviewController extends FXMLController {
 			Scene sc = new Scene(view);
 			stage.setScene(sc);
 			stage.show();
-			
+
 		} catch (IOException e) {
 			log.error("Cannot show GroupEditor", e);
 		}
 	}
-	
+
 	protected void removeGroupFromUser(PersonGroup selectedItem) {
 		if (selectedItem != null) {
 			personGroups.remove(selectedItem);
 			if (currentSelected != null && currentSelected.p != null) {
-				log.info("Removed " + allGroups.get(selectedItem.getId()).getName() + " from " + currentSelected.p.toString());
+				log.info("Removed " + allGroups.get(selectedItem.getId()).getName() + " from "
+						+ currentSelected.p.toString());
 			} else {
 				log.warn("No Person selected currently!?");
 			}
@@ -342,16 +378,16 @@ public class PersonOverviewController extends FXMLController {
 		log.trace("AllGroups: " + allGroups);
 
 		final ObservableList<PersonGroup> pg = FXCollections.observableArrayList();
-		if(personGroups.containsKey(currentSelected.p.getId())) {
+		if (personGroups.containsKey(currentSelected.p.getId())) {
 			pg.addAll(personGroups.get(currentSelected.p.getId()));
 		} else {
 			personGroups.put(currentSelected.p.getId(), pg);
 		}
-		
+
 		for (Group g : allGroups.values()) {
 			boolean found = false;
-			for( PersonGroup persGr: pg) {
-				if(persGr.getId() == g.getId()) {
+			for (PersonGroup persGr : pg) {
+				if (persGr.getId() == g.getId()) {
 					found = true;
 					break;
 				}
@@ -385,6 +421,118 @@ public class PersonOverviewController extends FXMLController {
 	}
 
 	@FXML
+	public void showPrintListOptions() {
+		final ListView<SelectablePerson> list = new ListView<>();
+		list.getItems().addAll(personData.stream().sorted(ListPerson.personComparator())
+				.map(p -> new SelectablePerson(p)).collect(Collectors.toList()));
+
+		list.setCellFactory(CheckBoxListCell.forListView(SelectablePerson::selectedProperty,
+				new StringConverter<SelectablePerson>() {
+
+					@Override
+					public String toString(SelectablePerson object) {
+						return object.nameProperty().get();
+					}
+
+					@Override
+					public SelectablePerson fromString(String string) {
+						Optional<SelectablePerson> first = list.getItems().stream()
+								.filter(p -> p.nameProperty().get().equals(string)).findFirst();
+						if (first.isPresent()) {
+							return first.get();
+						}
+						return null;
+					}
+				}));
+		Dialog<List<Person>> dlg = new Dialog<>();
+		dlg.initModality(Modality.WINDOW_MODAL);
+		dlg.setResizable(true);
+		DialogPane dialogPane = dlg.getDialogPane();
+		dialogPane.setContent(list);
+		ObservableList<ButtonType> buttonTypes = dialogPane.getButtonTypes();
+		buttonTypes.add(ButtonType.OK);
+		buttonTypes.add(ButtonType.CANCEL);
+		dlg.setResultConverter(button -> {
+			List<Person> result = new ArrayList<>();
+			if (button == ButtonType.OK) {
+				result.addAll(list.getItems().stream().filter(selectable -> selectable.selectedProperty().get())
+						.collect(Collectors.toList()));
+			}
+			return result;
+		});
+		Optional<List<Person>> res = dlg.showAndWait();
+
+		List<Person> list2 = res.get();
+
+		if (list2.isEmpty()) {
+			Alert dlg2 = new Alert(AlertType.WARNING);
+			dlg2.setContentText("Niemand ausgewählt. Abbruch.");
+			dlg2.show();
+		} else
+			createPhoneList(list2);
+	}
+
+	private void createPhoneList(final List<Person> list) {
+
+		final List<PhoneListPerson> srcList = new ArrayList<>();
+
+		Task<Void> personTask = new Task<Void>() {
+
+			@Override
+			protected Void call() throws Exception {
+
+				Function<Person, PhoneListPerson> mapper = (p) -> {
+					try {
+						log.trace("Processing " + p);
+						return PhoneListPerson.createAndFill(p, personData, relativeRepository, contactRepository);
+					} catch (InterruptedException | ExecutionException e) {
+						log.error("Error creating PhoneList Person", e);
+					}
+					return null;
+				};
+				final int max = list.size();
+				list.stream().sorted(PhoneListPerson.personComparator()).map(mapper).filter(p -> p != null)
+						.forEach(p -> {
+							srcList.add(p);
+							updateProgress(srcList.size(), max);
+						});
+
+				return null;
+			}
+
+			@Override
+			protected void succeeded() {
+				super.succeeded();
+
+				String rs = "/PhoneList.jasper";
+
+				JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(srcList);
+				InputStream res = getClass().getResourceAsStream(rs);
+				JasperPrint print;
+				try {
+					print = JasperFillManager.fillReport(res, new HashMap<>(), source);
+					JasperViewer.viewReport(print, false);
+				} catch (JRException e) {
+					log.error("Unable to create PhoneList", e);
+				}
+			}
+		};
+
+		ProgressDialog progDlg = new ProgressDialog(personTask);
+		progDlg.initModality(Modality.WINDOW_MODAL);
+		progDlg.initOwner(view.getScene().getWindow());
+		progDlg.setTitle("Lade Personendaten für Telefonliste");
+		progDlg.setHeaderText("Bitte warten...");
+
+		try {
+			background.execute(personTask);
+		} catch (Exception e1) {
+			log.error("Unable to create PhoneList", e1);
+		}
+
+	}
+
+	@FXML
 	private void printTrainingsplan() {
 		if (currentSelected != null) {
 			Person p = currentSelected.p;
@@ -397,21 +545,23 @@ public class PersonOverviewController extends FXMLController {
 			try {
 				String rs = "/Trainingsplan2.jasper";
 
-				JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(srcList);
 				InputStream res = getClass().getResourceAsStream(rs);
+				if (res == null) {
+					log.error("Resource " + rs + " not found. Unable to create Report");
+					return;
+				}
+				JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(srcList);
 				JasperPrint print = JasperFillManager.fillReport(res, new HashMap<>(), source);
 
 				JasperViewer.viewReport(print, false);
 			} catch (JRException e) {
-				e.printStackTrace();
+				log.error("Unable to create Report", e);
 			}
 		}
 	}
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-
-		refreshPersonList();
 
 		if (tblPersonen != null) {
 
@@ -514,14 +664,18 @@ public class PersonOverviewController extends FXMLController {
 			groupListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<PersonGroup>() {
 
 				@Override
-				public void changed(ObservableValue<? extends PersonGroup> observable, PersonGroup oldValue, PersonGroup newValue) {
-					if(newValue != null) {
+				public void changed(ObservableValue<? extends PersonGroup> observable, PersonGroup oldValue,
+						PersonGroup newValue) {
+					if(groupRemoveBtn == null) {
+						log.warn("GroupRemove not found!");
+						return;
+					}
+					if (newValue != null) {
 						groupRemoveBtn.setDisable(false);
 					} else {
 						groupRemoveBtn.setDisable(true);
 					}
-						
-					
+
 				}
 			});
 		}
@@ -542,23 +696,39 @@ public class PersonOverviewController extends FXMLController {
 	@FXML
 	public void refreshPersonList() {
 
-		background.execute(new Runnable() {
+		Task<Void> personTask = new Task<Void>() {
 
 			@Override
-			public void run() {
-				try {
-					personData.clear();
-					personData.addAll(personRepository.all());
-					for(Person p: personData) {
-						background.execute(new PersonGroupFetchTask(p));
-					}
-				} catch (IOException e) {
-					log.error("unable to fetch Persons", e);
-				}
+			protected Void call() throws Exception {
+				personData.clear();
+				personData.addAll(personRepository.all());
+				return null;
 			}
-		});
+
+			@Override
+			protected void succeeded() {
+				for (Person p : personData) {
+					background.execute(new PersonGroupFetchTask(p));
+				}
+				super.succeeded();
+			}
+		};
 
 		background.execute(new GroupFetchTask());
+
+		ProgressDialog progDlg = new ProgressDialog(personTask);
+		progDlg.initModality(Modality.WINDOW_MODAL);
+		if (view != null) {
+			Scene scene = view.getScene();
+			if (scene != null) {
+				progDlg.initOwner(scene.getWindow());
+			}
+		}
+		progDlg.setTitle("Lade Personendaten");
+		progDlg.setContentText("Bitte warten...");
+
+		background.execute(personTask);
+
 	}
 
 	public void updateDetails() {
@@ -577,7 +747,7 @@ public class PersonOverviewController extends FXMLController {
 			background.execute(new ContactFetchTask(currentSelected.p));
 			background.execute(new RelationFetchTask(currentSelected.p));
 			currentPersonsGroups.clear();
-			if(personGroups.containsKey(currentSelected.getId())) {
+			if (personGroups.containsKey(currentSelected.getId())) {
 				currentPersonsGroups.addAll(personGroups.get(currentSelected.getId()));
 			} else {
 				background.execute(new PersonGroupFetchTask(currentSelected.p));
@@ -700,12 +870,12 @@ public class PersonOverviewController extends FXMLController {
 		protected void succeeded() {
 
 			super.succeeded();
-			if(personGroups.containsKey(person.getId()) == false) {
+			if (personGroups.containsKey(person.getId()) == false) {
 				personGroups.put(person.getId(), FXCollections.observableArrayList());
 			}
 			final ObservableList<PersonGroup> persGrList = personGroups.get(person.getId());
 			persGrList.clear();
-			
+
 			if (result.isEmpty()) {
 				String type = person.getType();
 				Group group = null;
@@ -730,9 +900,9 @@ public class PersonOverviewController extends FXMLController {
 							try {
 								Group temp = groupRepository.insert(g1);
 								allGroups.put(temp.getId(), temp);
-								pg = new PersonGroup(-1L, PersonGroupFetchTask.this.person.getId(),
-										temp.getId(), null, null);
-								pg= personGroupRepository.insert(pg);
+								pg = new PersonGroup(-1L, PersonGroupFetchTask.this.person.getId(), temp.getId(), null,
+										null);
+								pg = personGroupRepository.insert(pg);
 								persGrList.add(pg);
 							} catch (IOException e) {
 								e.printStackTrace();
@@ -756,7 +926,7 @@ public class PersonOverviewController extends FXMLController {
 
 						@Override
 						public void run() {
-							try {								
+							try {
 								persGrList.add(personGroupRepository.insert(pg));
 							} catch (IOException e) {
 								log.warn("could not insert PerosnGroup for " + person + " with groupId="
@@ -772,7 +942,7 @@ public class PersonOverviewController extends FXMLController {
 						persGrList.add(g);
 					}
 				}
-				if(currentSelected != null && currentSelected.getId().equals(person.getId())) {
+				if (currentSelected != null && currentSelected.getId().equals(person.getId())) {
 					currentPersonsGroups.clear();
 					currentPersonsGroups.addAll(persGrList);
 				}
@@ -908,9 +1078,9 @@ public class PersonOverviewController extends FXMLController {
 				final FXMLLoader loader = new FXMLLoader();
 				loader.setLocation(getClass().getResource("ContactRow.fxml"));
 				ContactRowController con = new ContactRowController(c, background, contactRepository);
-				
+
 				loader.setController(con);
-								
+
 				try {
 					Node contactRow = loader.load();
 					con.setDeleteAction(new RemoveRowTask());
@@ -1036,12 +1206,12 @@ public class PersonOverviewController extends FXMLController {
 			return translate(getName());
 		}
 	}
-	
+
 	private class RemoveRowTask extends Task<Void> implements ContactDeleted {
 
 		private Parent rowItem;
 		private Contact c;
-		
+
 		@Override
 		public void deleted(Contact c, Parent rowItem) {
 			Integer index = GridPane.getRowIndex(rowItem);
@@ -1055,11 +1225,11 @@ public class PersonOverviewController extends FXMLController {
 		protected Void call() throws Exception {
 			return null;
 		}
-		
+
 		@Override
 		protected void succeeded() {
 			super.succeeded();
-			log.debug("removing Contact " + c );
+			log.debug("removing Contact " + c);
 			paneContacts.getChildren().remove(rowItem);
 		}
 	}

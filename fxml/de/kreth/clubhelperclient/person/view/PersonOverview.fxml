@@ -138,7 +138,7 @@
                         </ImageView>
                      </graphic>
                   </Button>
-                  <Button layoutX="508.0" layoutY="135.0" mnemonicParsing="false" onAction="#removeGroupFromPerson" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="135.0">
+                  <Button fx:id="groupRemoveBtn" layoutX="508.0" layoutY="135.0" mnemonicParsing="false" onAction="#removeGroupFromPerson" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="135.0">
                      <graphic>
                         <ImageView fitHeight="18.0" fitWidth="18.0" pickOnBounds="true" preserveRatio="true">
                            <image>
@@ -162,7 +162,7 @@
                   </ImageView>
                </graphic>
             </Button>
-            <Button fx:id="addPerson" layoutX="67.0" layoutY="12.0" mnemonicParsing="false" onAction="#addPerson" AnchorPane.leftAnchor="67.0" AnchorPane.topAnchor="12.0">
+            <Button fx:id="addPerson" layoutX="67.0" layoutY="12.0" mnemonicParsing="false" onAction="#addPerson" AnchorPane.leftAnchor="67.0" AnchorPane.topAnchor="10.0">
                <graphic>
                   <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -174,7 +174,7 @@
                   </ImageView>
                </graphic>
             </Button>
-            <Button fx:id="delPerson" layoutX="126.0" layoutY="14.0" mnemonicParsing="false" onAction="#delPerson" AnchorPane.leftAnchor="126.0" AnchorPane.topAnchor="14.0">
+            <Button fx:id="delPerson" layoutX="126.0" layoutY="14.0" mnemonicParsing="false" onAction="#delPerson" AnchorPane.leftAnchor="126.0" AnchorPane.topAnchor="10.0">
                <graphic>
                   <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -183,11 +183,20 @@
                   </ImageView>
                </graphic>
             </Button>
-            <Button fx:id="groupEdtBtn" layoutX="544.0" layoutY="16.0" mnemonicParsing="false" onAction="#showGroupEditor">
+            <Button fx:id="groupEdtBtn" layoutX="544.0" layoutY="16.0" mnemonicParsing="false" onAction="#showGroupEditor" AnchorPane.topAnchor="10.0">
                <graphic>
                   <ImageView fitHeight="35.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="/users-group.jpg" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+            <Button fx:id="printLists" layoutX="189.0" layoutY="12.0" mnemonicParsing="false" onAction="#showPrintListOptions" AnchorPane.topAnchor="10.0">
+               <graphic>
+                  <ImageView fitHeight="34.0" fitWidth="34.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="/printer.png" />
                      </image>
                   </ImageView>
                </graphic>

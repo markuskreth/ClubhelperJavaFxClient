@@ -1,17 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.3.1.final using JasperReports Library version 6.3.1  -->
-<!-- 2016-11-20T19:14:03 -->
+<!-- 2017-01-08T15:48:02 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Trainingsplan2" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="ded67aeb-7bc1-40bd-8d13-0fceb062e769">
-	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="PersonBeanAdapter "/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="TrainingsplanPerson"/>
 	<queryString>
 		<![CDATA[]]>
 	</queryString>
-	<field name="prename" class="java.lang.String"/>
-	<field name="surname" class="java.lang.String"/>
-	<field name="telefon" class="java.lang.String"/>
-	<field name="birth" class="java.util.Date"/>
-	<field name="alter" class="java.lang.Integer"/>
-	<field name="beimTrampolin" class="java.util.Date"/>
+	<field name="prename" class="java.lang.String">
+		<fieldDescription><![CDATA[Vorname]]></fieldDescription>
+	</field>
+	<field name="surname" class="java.lang.String">
+		<fieldDescription><![CDATA[Nachname]]></fieldDescription>
+	</field>
+	<field name="beimTrampolin" class="java.util.Date">
+		<fieldDescription><![CDATA[Datum des Eintritts]]></fieldDescription>
+	</field>
+	<field name="birth" class="java.util.Date">
+		<fieldDescription><![CDATA[Geburtstag]]></fieldDescription>
+	</field>
+	<field name="telefon" class="java.lang.String">
+		<fieldDescription><![CDATA[Telefon der Eltern]]></fieldDescription>
+	</field>
 	<background>
 		<band splitType="Stretch"/>
 	</background>
