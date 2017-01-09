@@ -30,6 +30,7 @@ import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -218,6 +219,7 @@ public class Main extends Application {
 			Scene scene = new Scene(rootLayout);
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
 			primaryStage.setScene(scene);
+			primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/ic_launcher.png")));
 			primaryStage.show();
 		} catch (Exception e) {
 			e.printStackTrace();
